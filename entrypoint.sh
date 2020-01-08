@@ -35,7 +35,6 @@ WaitForDBServer(){
       sleep 10
       DBSERVERONLINE="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")" 
    done
-   NEXTCLOUDDBEXISTS="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${MYSQL_DATABASE:=nextclouddb}'" 2>/dev/null | grep -c "${MYSQL_DATABASE}")"
 }
 
 Initialise(){
@@ -54,13 +53,17 @@ Initialise(){
    echo "Nextcloud access domain: $NEXTCLOUD_TRUSTED_DOMAINS"
    if [ ! -z "${NEXTCLOUD_BASE_DIR}" ]; then
       echo "Nextcloud web root: ${NEXTCLOUD_BASE_DIR}"
+      export NEXTCLOUD_INSTALL_DIR="/var/www/html${NEXTCLOUD_BASE_DIR}"
+      echo "Nextcloud install path: ${NEXTCLOUD_INSTALL_DIR}"
    else
-      echo "Nextcloud web root variable not set. Website will be available at the root"
+      export NEXTCLOUD_INSTALL_DIR="/var/www/html"
+      echo "Nextcloud install path: ${NEXTCLOUD_INSTALL_DIR}"
    fi
    echo "Nextcloud data directory: ${NEXTCLOUD_DATA_DIR:=/var/www/data}"
-   if [ ! -d "${NEXTCLOUD_DATA_DIR}" ]; then
-      mkdir -p "${NEXTCLOUD_DATA_DIR}"
-   fi
+   if [ ! -d "${NEXTCLOUD_DATA_DIR}" ]; then mkdir -p "${NEXTCLOUD_DATA_DIR}"; fi
+   echo "Nextcloud installation directory ${NEXTCLOUD_INSTALL_DIR}"
+   if [ ! -d "${NEXTCLOUD_INSTALL_DIR}" ]; then mkdir -p "${NEXTCLOUD_INSTALL_DIR}"; fi
+   installed_version="0.0.0.0"
 }
 
 ChangeGroup(){
@@ -83,31 +86,51 @@ ChangeUser(){
    fi
 }
 
+ConfigureRedis(){
+   echo "Configuring Redis as session handler"
+   {
+      echo 'session.save_handler = redis'
+      # check if redis password has been set
+      if [ -n "${REDIS_HOST_PASSWORD+x}" ]; then
+          echo "session.save_path = \"tcp://${REDIS_HOST}:${REDIS_HOST_PORT:=6379}?auth=${REDIS_HOST_PASSWORD}\""
+      else
+          echo "session.save_path = \"tcp://${REDIS_HOST}:${REDIS_HOST_PORT:=6379}\""
+      fi
+   } > /usr/local/etc/php/conf.d/redis-session.ini
+}
+
+InstallNextcloud(){
+   echo "starting nextcloud installation"
+   max_retries=10
+   try=0
+   until run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ maintenance:install $install_options" || [ "$try" -gt "$max_retries" ]; do
+      echo "retrying install..."
+      try=$((try+1))
+      sleep 3s
+   done
+   if [ "$try" -gt "$max_retries" ]; then
+      echo "installing of nextcloud failed!"
+      exit 1
+   fi
+}
+
+SetTrustedDomains(){
+   echo "setting trusted domains…"
+   NC_TRUSTED_DOMAIN_IDX=1
+   for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS ; do
+      DOMAIN=$(echo "$DOMAIN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_domains $NC_TRUSTED_DOMAIN_IDX --value=$DOMAIN"
+      NC_TRUSTED_DOMAIN_IDX=$(($NC_TRUSTED_DOMAIN_IDX+1))
+   done
+}
+
 PrepLaunch(){
    if expr "$1" : "apache" 1>/dev/null || [ "$1" = "php-fpm" ] || [ "${NEXTCLOUD_UPDATE:-0}" -eq 1 ]; then
-       if [ -n "${REDIS_HOST+x}" ]; then
+       if [ -n "${REDIS_HOST+x}" ]; then ConfigureRedis; fi
 
-           echo "Configuring Redis as session handler"
-           {
-               echo 'session.save_handler = redis'
-               # check if redis password has been set
-               if [ -n "${REDIS_HOST_PASSWORD+x}" ]; then
-                   echo "session.save_path = \"tcp://${REDIS_HOST}:${REDIS_HOST_PORT:=6379}?auth=${REDIS_HOST_PASSWORD}\""
-               else
-                   echo "session.save_path = \"tcp://${REDIS_HOST}:${REDIS_HOST_PORT:=6379}\""
-               fi
-           } > /usr/local/etc/php/conf.d/redis-session.ini
-       fi
-
-       echo "Create Nextcloud base directory"
-       if [ ! -z "${NEXTCLOUD_BASE_DIR}" ] && [ ! -d "/var/www/html${NEXTCLOUD_BASE_DIR}/" ]; then
-           mkdir -p "/var/www/html${NEXTCLOUD_BASE_DIR}/"
-       fi
-
-       installed_version="0.0.0.0"
-       if [ -f "/var/www/html${NEXTCLOUD_BASE_DIR}/version.php" ]; then
+       if [ -f "${NEXTCLOUD_INSTALL_DIR}/version.php" ]; then
            # shellcheck disable=SC2016
-           installed_version="$(/usr/local/bin/php -r 'require "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/version.php"; echo implode(".", $OC_Version);')"
+           installed_version="$(/usr/local/bin/php -r '$OC_Install_Dir = getenv("NEXTCLOUD_INSTALL_DIR"); require "$OC_Install_Dir/version.php"; echo implode(".", $OC_Version);')"
        fi
        # shellcheck disable=SC2016
        image_version="$(/usr/local/bin/php -r 'require "/usr/src/nextcloud/version.php"; echo implode(".", $OC_Version);')"
@@ -120,31 +143,30 @@ PrepLaunch(){
            echo "Initializing nextcloud $image_version ..."
            if [ "$installed_version" != "0.0.0.0" ]; then
                echo "Upgrading nextcloud from $installed_version ..."
-               run_as "/usr/local/bin/php /var/www/html${NEXTCLOUD_BASE_DIR}/occ app:list" | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_before
+               run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ app:list" | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_before
            fi
            if [ "$(id -u)" = 0 ]; then
                rsync_options="-rlDog --chown www-data:root"
            else
                rsync_options="-rlD"
            fi
-           rsync $rsync_options --delete --exclude-from=/upgrade.exclude /usr/src/nextcloud/ "/var/www/html${NEXTCLOUD_BASE_DIR}/"
+           rsync $rsync_options --delete --exclude-from=/upgrade.exclude /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
 
            for dir in config data custom_apps themes; do
-               if [ ! -d "/var/www/html${NEXTCLOUD_BASE_DIR}/$dir" ] || directory_empty "/var/www/html${NEXTCLOUD_BASE_DIR}/$dir"; then
-                   rsync $rsync_options --include "/$dir/" --exclude '/*' /usr/src/nextcloud/ "/var/www/html${NEXTCLOUD_BASE_DIR}/"
+               if [ ! -d "${NEXTCLOUD_INSTALL_DIR}/$dir" ] || directory_empty "${NEXTCLOUD_INSTALL_DIR}/$dir"; then
+                   rsync $rsync_options --include "/$dir/" --exclude '/*' /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
                fi
            done
-           rsync $rsync_options --include '/version.php' --exclude '/*' /usr/src/nextcloud/ "/var/www/html${NEXTCLOUD_BASE_DIR}/"
+           rsync $rsync_options --include '/version.php' --exclude '/*' /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
            echo "Initializing finished"
 
            #install
            if [ "$installed_version" = "0.0.0.0" ]; then
-               echo "install nextcloud instance"
-
+               echo "New nextcloud installation"
                if [ -n "${NEXTCLOUD_ADMIN_USER+x}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD+x}" ]; then
                    # shellcheck disable=SC2016
-                   install_options='-n --admin-user "$NEXTCLOUD_ADMIN_USER" --admin-pass "$NEXTCLOUD_ADMIN_PASSWORD"'
-                   if [ -n "${NEXTCLOUD_TABLE_PREFIX+x}" ]; then
+                   install_options="-n --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD"
+                   if [ -n "${NEXTCLOUD_TABLE_PREFIX+x}" ] && [ "${NEXTCLOUDDBEXISTS}" = 0 ]; then
                        # shellcheck disable=SC2016
                        install_options=$install_options' --database-table-prefix "$NEXTCLOUD_TABLE_PREFIX"'
                    fi
@@ -152,68 +174,30 @@ PrepLaunch(){
                        # shellcheck disable=SC2016
                        install_options=$install_options' --data-dir "$NEXTCLOUD_DATA_DIR"'
                    fi
-
                    install=false
-                   if [ -n "${SQLITE_DATABASE+x}" ]; then
-                       echo "Installing with SQLite database"
-                       # shellcheck disable=SC2016
-                       install_options=$install_options' --database-name "$SQLITE_DATABASE"'
-                       install=true
-                   elif [ -n "${MYSQL_DATABASE+x}" ] && [ -n "${MYSQL_USER+x}" ] && [ -n "${MYSQL_PASSWORD+x}" ] && [ -n "${MYSQL_HOST+x}" ]; then
+                   if [ -n "${MYSQL_DATABASE+x}" ] && [ -n "${MYSQL_USER+x}" ] && [ -n "${MYSQL_PASSWORD+x}" ] && [ -n "${MYSQL_HOST+x}" ]; then
                        echo "Installing with MySQL database"
                        # shellcheck disable=SC2016
                        install_options=$install_options' --database mysql --database-name "$MYSQL_DATABASE" --database-user "$MYSQL_USER" --database-pass "$MYSQL_PASSWORD" --database-host "$MYSQL_HOST"'
                        install=true
-                   elif [ -n "${POSTGRES_DB+x}" ] && [ -n "${POSTGRES_USER+x}" ] && [ -n "${POSTGRES_PASSWORD+x}" ] && [ -n "${POSTGRES_HOST+x}" ]; then
-                       echo "Installing with PostgreSQL database"
-                       # shellcheck disable=SC2016
-                       install_options=$install_options' --database pgsql --database-name "$POSTGRES_DB" --database-user "$POSTGRES_USER" --database-pass "$POSTGRES_PASSWORD" --database-host "$POSTGRES_HOST"'
-                       install=true
                    fi
-
                    if [ "$install" = true ]; then
-                       echo "starting nextcloud installation"
-                       max_retries=10
-                       try=0
-                       until run_as '/usr/local/bin/php "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/occ" maintenance:install '"$install_options"'' || [ "$try" -gt "$max_retries" ]
-                       do
-                           echo "retrying install..."
-                           try=$((try+1))
-                           sleep 3s
-                       done
-                       if [ "$try" -gt "$max_retries" ]; then
-                           echo "installing of nextcloud failed!"
-                           exit 1
-                       fi
-                       if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then
-                           echo "setting trusted domains…"
-                           NC_TRUSTED_DOMAIN_IDX=1
-                           for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS ; do
-                               DOMAIN=$(echo "$DOMAIN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-                               run_as '/usr/local/bin/php "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/occ" config:system:set trusted_domains "'"$NC_TRUSTED_DOMAIN_IDX"'" --value='"$DOMAIN"''
-                               NC_TRUSTED_DOMAIN_IDX=$(($NC_TRUSTED_DOMAIN_IDX+1))
-                           done
-                       fi
+                     InstallNextcloud
                    else
                        echo "running web-based installer on first connect!"
                    fi
+                   if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then
+                     SetTrustedDomains
+                   fi
                fi
-           #upgrade
            else
-               run_as '/usr/local/bin/php "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/occ" upgrade'
-               run_as '/usr/local/bin/php "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/occ" app:list' | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_after
+               #upgrade
+               run_as '/usr/local/bin/php "${NEXTCLOUD_INSTALL_DIR}/occ" upgrade'
+               run_as '/usr/local/bin/php "${NEXTCLOUD_INSTALL_DIR}/occ" app:list' | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_after
                echo "The following apps have been disabled:"
                diff /tmp/list_before /tmp/list_after | grep '<' | cut -d- -f2 | cut -d: -f1
                rm -f /tmp/list_before /tmp/list_after
-
            fi
-       fi
-       if [ ! -z "${NEXTCLOUD_BASE_DIR}" ]; then
-           echo "Add crontab"
-           echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/cron.php"' > "/var/spool/cron/crontabs/www-data"
-       else
-           echo "Add crontab"
-           echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html/cron.php"' > "/var/spool/cron/crontabs/www-data"
        fi
    fi
 }
@@ -269,52 +253,65 @@ FirstRun(){
       -e 's#;emergency_restart_interval =.*#emergency_restart_interval = 1m#' \
       -e 's#;process_control_timeout =.*#process_control_timeout = 10s#' \
       /usr/local/etc/php-fpm.conf
-   sed -i '$d' "/var/www/html${NEXTCLOUD_BASE_DIR}/config/config.php"
-   { 
-       echo "  'blacklisted_files' =>"
-       echo "      array ("
-       echo "         0 => '.htaccess',"
-       echo "         1 => 'Thumbs.db',"
-       echo "         2 => 'thumbs.db',"
-       echo "      ),"
-       echo "  'cron_log' => true,"
-       echo "  'enable_previews' => true,"
-       echo "  'enabledPreviewProviders' =>"
-       echo "     array ("
-       echo "        0 => 'OC\\Preview\\PNG',"
-       echo "        1 => 'OC\\Preview\\JPEG',"
-       echo "        2 => 'OC\\Preview\\GIF',"
-       echo "        3 => 'OC\\Preview\\BMP',"
-       echo "        4 => 'OC\\Preview\\XBitmap',"
-       echo "        5 => 'OC\\Preview\\Movie'",
-       echo "        6 => 'OC\\Preview\\PDF',"
-       echo "        7 => 'OC\\Preview\\MP3',"
-       echo "        8 => 'OC\\Preview\\TXT',"
-       echo "        9 => 'OC\\Preview\\MarkDown',"
-       echo "     ),"
-       echo "  'preview_max_x' => 1024,"
-       echo "  'preview_max_y' => 768,"
-       echo "  'preview_max_scale_factor' => 1,"
-       echo "  'filesystem_check_changes' => 0,"
-       echo "  'filelocking.enabled' => 'true',"
-       echo "  'htaccess.RewriteBase' => '/',"
-       echo "  'integrity.check.disabled' => false,"
-       echo "  'knowledgebaseenabled' => false,"
-       echo "  'logfile' => '/dev/stdout',"
-       echo "  'loglevel' => 2,"
-       echo "  'logtimezone' => '${TZ}',"
-       echo "  'log_rotate_size' => 104857600,"
-       echo "  'trashbin_retention_obligation' => 'auto, 7',"
-       echo "  'updater.release.channel' => 'stable',"
-       echo "  'updatechecker' => false,"
-       echo "  'check_for_working_htaccess' => false,"
-       echo "  'overwriteprotocol' => 'https',"
-       echo "  'overwritewebroot' => '/${NEXTCLOUD_BASE_DIR/\/}',"
-       echo "  'auth.bruteforce.protection.enabled' => true,"
-       echo "  'maintenance' => false,"
-       echo "  'installed' => true,"
-       echo ");"
-   } >> "/var/www/html${NEXTCLOUD_BASE_DIR}/config/config.php"
+   if [ -f "${NEXTCLOUD_INSTALL_DIR}/config/config.php" ]; then
+      echo "${NEXTCLOUD_INSTALL_DIR}/config/config.php - Exists"
+      sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+      { 
+          echo "  'blacklisted_files' =>"
+          echo "      array ("
+          echo "         0 => '.htaccess',"
+          echo "         1 => 'Thumbs.db',"
+          echo "         2 => 'thumbs.db',"
+          echo "      ),"
+          echo "  'cron_log' => true,"
+          echo "  'enable_previews' => true,"
+          echo "  'enabledPreviewProviders' =>"
+          echo "     array ("
+          echo "        0 => 'OC\\Preview\\PNG',"
+          echo "        1 => 'OC\\Preview\\JPEG',"
+          echo "        2 => 'OC\\Preview\\GIF',"
+          echo "        3 => 'OC\\Preview\\BMP',"
+          echo "        4 => 'OC\\Preview\\XBitmap',"
+          echo "        5 => 'OC\\Preview\\Movie'",
+          echo "        6 => 'OC\\Preview\\PDF',"
+          echo "        7 => 'OC\\Preview\\MP3',"
+          echo "        8 => 'OC\\Preview\\TXT',"
+          echo "        9 => 'OC\\Preview\\MarkDown',"
+          echo "     ),"
+          echo "  'preview_max_x' => 1024,"
+          echo "  'preview_max_y' => 768,"
+          echo "  'preview_max_scale_factor' => 1,"
+          echo "  'filesystem_check_changes' => 0,"
+          echo "  'filelocking.enabled' => 'true',"
+          echo "  'htaccess.RewriteBase' => '/',"
+          echo "  'integrity.check.disabled' => false,"
+          echo "  'knowledgebaseenabled' => false,"
+          echo "  'logfile' => '/dev/stdout',"
+          echo "  'loglevel' => 2,"
+          echo "  'logtimezone' => '${TZ}',"
+          echo "  'log_rotate_size' => 104857600,"
+          echo "  'trashbin_retention_obligation' => 'auto, 7',"
+          echo "  'updater.release.channel' => 'stable',"
+          echo "  'updatechecker' => false,"
+          echo "  'check_for_working_htaccess' => false,"
+          echo "  'overwriteprotocol' => 'https',"
+          echo "  'overwritewebroot' => '/${NEXTCLOUD_BASE_DIR/\/}',"
+          echo "  'auth.bruteforce.protection.enabled' => true,"
+          echo "  'maintenance' => false,"
+          echo "  'installed' => true,"
+          echo ");"
+      } >> "/var/www/html${NEXTCLOUD_BASE_DIR}/config/config.php"
+   fi
+}
+
+SetCrontab(){
+   echo "Add crontab"
+    if [ ! -z "${NEXTCLOUD_BASE_DIR}" ]; then
+        echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/cron.php"' > "/var/spool/cron/crontabs/www-data"
+    else
+        echo "Add crontab"
+        echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html/cron.php"' > "/var/spool/cron/crontabs/www-data"
+    fi
 }
 
 SetOwnerAndGroup(){
@@ -333,5 +330,6 @@ ChangeUser
 SetOwnerAndGroup
 PrepLaunch "$1"
 if [ ! -f "/usr/local/etc/php/php.ini" ]; then FirstRun; fi
+SetCrontab
 SetOwnerAndGroup
 exec "$@"
