@@ -215,8 +215,8 @@ FirstRun(){
       -e 's#^output_buffering =.*#output_buffering = Off#' \
       -e 's#^max_execution_time =.*#max_execution_time = 1800#' \
       -e 's#^max_input_time =.*#max_input_time = 3600#' \
-      -e 's#^post_max_size =.*#post_max_size = 40960M#' \
-      -e 's#^upload_max_filesize =.*#upload_max_filesize = 40960M#' \
+      -e 's#^post_max_size =.*#post_max_size = 10G#' \
+      -e 's#^upload_max_filesize =.*#upload_max_filesize = 10G#' \
       -e 's#^max_file_uploads =.*#max_file_uploads = 100#' \
       -e 's#^;date.timezone.*#date.timezone = Europe/London#' \
       -e 's#^;opcache.enable=.*#opcache.enable=1#' \
