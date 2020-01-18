@@ -21,66 +21,54 @@ run_as() {
 WaitForDBServer(){
    echo -e "\n"
    echo "***** Starting Nextcloud container *****"
-   if [ -z "${MYSQL_HOST}" ]; then
-      echo "MYSQL_HOST variable not set, exiting"
-      exit 1
-   fi
    if [ -z "${MYSQL_ROOT_PASSWORD}" ]; then
       echo "MYSQL_ROOT_PASSWORD variable not set, exiting"
       exit 1
    fi
-   DBSERVERONLINE="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")"
-   while [ "${DBSERVERONLINE}" = 0 ]; do
+   db_server_online="$(mysql --host="${MYSQL_HOST:=mariadb}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")"
+   while [ "${db_server_online}" = 0 ]; do
       echo "Waiting for database server, ${MYSQL_HOST}, to come online..." 
       sleep 10
-      DBSERVERONLINE="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")" 
+      db_server_online="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")" 
    done
 }
 
 Initialise(){
-   if [ -z "${USER}" ]; then echo "User name not set, defaulting to 'nextcloud'"; USER="nextcloud"; fi
-   if [ -z "${UID}" ]; then echo "User ID not set, defaulting to '1000'"; UID="1000"; fi
-   if [ -z "${GROUP}" ]; then echo "Group name not set, defaulting to 'www-data'"; GROUP="www-data"; fi
-   if [ -z "${GID}" ]; then echo "Group ID not set, defaulting to '1000'"; GID="1000"; fi
-   echo "Local user: ${USER}:${UID}"
-   echo "Local group: ${GROUP}:${GID}"
+   echo "Local user: ${user:=nextcloud}:${user_id:=1000}"
+   echo "Local group: ${group:=www-data}:${group_id:=1000}"
    echo "Database server: ${MYSQL_HOST}"
-   echo "Nextcloud database name: ${MYSQL_DATABASE}"
+   echo "Nextcloud database name: ${MYSQL_DATABASE:=nextcloud_db}"
    echo "Nextcloud database user: ${MYSQL_USER:=nextcloud}"
    echo "Nextcloud database password: ${MYSQL_PASSWORD:=NextcloudPass}"
    echo "Nextcloud Admin user: ${NEXTCLOUD_ADMIN_USER:=stackman}"
    echo "Nextcloud Admin password: ${NEXTCLOUD_ADMIN_PASSWORD:=Skibidibbydibyodadubdub}"
    echo "Nextcloud access domain: $NEXTCLOUD_TRUSTED_DOMAINS"
-   if [ ! -z "${NEXTCLOUD_BASE_DIR}" ]; then
-      echo "Nextcloud web root: ${NEXTCLOUD_BASE_DIR}"
-      export NEXTCLOUD_INSTALL_DIR="/var/www/html${NEXTCLOUD_BASE_DIR}"
-      echo "Nextcloud install path: ${NEXTCLOUD_INSTALL_DIR}"
-   else
-      export NEXTCLOUD_INSTALL_DIR="/var/www/html"
-      echo "Nextcloud install path: ${NEXTCLOUD_INSTALL_DIR}"
-   fi
+   echo "Nextcloud installation root: /var/www/html"
+   echo "Nextcloud web root: ${nextcloud_web_root:=/}"
+   NEXTCLOUD_INSTALL_DIR="/var/www/html${nextcloud_web_root}"
+   echo "Nextcloud install directory: ${NEXTCLOUD_INSTALL_DIR}"
+   if [ ! -d "${NEXTCLOUD_INSTALL_DIR}" ]; then mkdir -p "${NEXTCLOUD_INSTALL_DIR}"; fi
    echo "Nextcloud data directory: ${NEXTCLOUD_DATA_DIR:=/var/www/data}"
    if [ ! -d "${NEXTCLOUD_DATA_DIR}" ]; then mkdir -p "${NEXTCLOUD_DATA_DIR}"; fi
-   echo "Nextcloud installation directory ${NEXTCLOUD_INSTALL_DIR}"
-   if [ ! -d "${NEXTCLOUD_INSTALL_DIR}" ]; then mkdir -p "${NEXTCLOUD_INSTALL_DIR}"; fi
    installed_version="0.0.0.0"
+   export NEXTCLOUD_INSTALL_DIR
 }
 
 ChangeGroup(){
-   if [ ! -z "${GID}" ] && [ -z "$(getent group "${GID}" | cut -d: -f3)" ]; then
+   if [ ! -z "${group_id}" ] && [ -z "$(getent group "${group_id}" | cut -d: -f3)" ]; then
       echo "Group ID available, changing group ID for www-data"
-      groupmod -o www-data -g "${GID}"
-   elif [ ! "$(getent group "${GROUP}" | cut -d: -f3)" = "${GID}" ]; then
-      echo "Group GID in use, cannot continue"
+      groupmod -o www-data -g "${group_id}"
+   elif [ ! "$(getent group "${group}" | cut -d: -f3)" = "${group_id}" ]; then
+      echo "Group group_id in use, cannot continue"
       exit 1
    fi
 }
 
 ChangeUser(){
-   if [ ! -z "${UID}" ] && [ ! -z "${GID}" ] && [ -z "$(getent passwd "${USER}" | cut -d: -f3)" ]; then
+   if [ ! -z "${user_id}" ] && [ ! -z "${group_id}" ] && [ -z "$(getent passwd "${user}" | cut -d: -f3)" ]; then
       echo "User ID available, changing user and primary group"
-      usermod -o www-data -u "${UID}" -g "${GID}"
-   elif [ ! "$(getent passwd "${USER}" | cut -d: -f3)" = "${UID}" ]; then
+      usermod -o www-data -u "${user_id}" -g "${group_id}"
+   elif [ ! "$(getent passwd "${user}" | cut -d: -f3)" = "${user_id}" ]; then
       echo "User ID already in use - exiting"
       exit 1
    fi
@@ -166,7 +154,7 @@ PrepLaunch(){
                if [ -n "${NEXTCLOUD_ADMIN_USER+x}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD+x}" ]; then
                    # shellcheck disable=SC2016
                    install_options="-n --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD"
-                   if [ -n "${NEXTCLOUD_TABLE_PREFIX+x}" ] && [ "${NEXTCLOUDDBEXISTS}" = 0 ]; then
+                   if [ -n "${NEXTCLOUD_TABLE_PREFIX+x}" ]; then
                        # shellcheck disable=SC2016
                        install_options=$install_options' --database-table-prefix "$NEXTCLOUD_TABLE_PREFIX"'
                    fi
@@ -253,61 +241,61 @@ FirstRun(){
       -e 's#;emergency_restart_interval =.*#emergency_restart_interval = 1m#' \
       -e 's#;process_control_timeout =.*#process_control_timeout = 10s#' \
       /usr/local/etc/php-fpm.conf
-   if [ -f "${NEXTCLOUD_INSTALL_DIR}/config/config.php" ]; then
-      echo "${NEXTCLOUD_INSTALL_DIR}/config/config.php - Exists"
-      sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-      { 
-          echo "  'blacklisted_files' =>"
-          echo "      array ("
-          echo "         0 => '.htaccess',"
-          echo "         1 => 'Thumbs.db',"
-          echo "         2 => 'thumbs.db',"
-          echo "      ),"
-          echo "  'cron_log' => true,"
-          echo "  'enable_previews' => true,"
-          echo "  'enabledPreviewProviders' =>"
-          echo "     array ("
-          echo "        0 => 'OC\\Preview\\PNG',"
-          echo "        1 => 'OC\\Preview\\JPEG',"
-          echo "        2 => 'OC\\Preview\\GIF',"
-          echo "        3 => 'OC\\Preview\\BMP',"
-          echo "        4 => 'OC\\Preview\\XBitmap',"
-          echo "        5 => 'OC\\Preview\\Movie'",
-          echo "        6 => 'OC\\Preview\\PDF',"
-          echo "        7 => 'OC\\Preview\\MP3',"
-          echo "        8 => 'OC\\Preview\\TXT',"
-          echo "        9 => 'OC\\Preview\\MarkDown',"
-          echo "     ),"
-          echo "  'preview_max_x' => 1024,"
-          echo "  'preview_max_y' => 768,"
-          echo "  'preview_max_scale_factor' => 1,"
-          echo "  'filesystem_check_changes' => 0,"
-          echo "  'filelocking.enabled' => 'true',"
-          echo "  'htaccess.RewriteBase' => '/',"
-          echo "  'integrity.check.disabled' => false,"
-          echo "  'knowledgebaseenabled' => false,"
-          echo "  'logfile' => '/dev/stdout',"
-          echo "  'loglevel' => 2,"
-          echo "  'logtimezone' => '${TZ}',"
-          echo "  'log_rotate_size' => 104857600,"
-          echo "  'trashbin_retention_obligation' => 'auto, 7',"
-          echo "  'updater.release.channel' => 'stable',"
-          echo "  'updatechecker' => false,"
-          echo "  'check_for_working_htaccess' => false,"
-          echo "  'overwriteprotocol' => 'https',"
-          echo "  'overwritewebroot' => '/${NEXTCLOUD_BASE_DIR/\/}',"
-          echo "  'auth.bruteforce.protection.enabled' => true,"
-          echo "  'maintenance' => false,"
-          echo "  'installed' => true,"
-          echo ");"
-      } >> "/var/www/html${NEXTCLOUD_BASE_DIR}/config/config.php"
-   fi
+   # if [ -f "${NEXTCLOUD_INSTALL_DIR}/config/config.php" ]; then
+      # echo "${NEXTCLOUD_INSTALL_DIR}/config/config.php - Exists"
+      # sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+      # { 
+          # echo "  'blacklisted_files' =>"
+          # echo "      array ("
+          # echo "         0 => '.htaccess',"
+          # echo "         1 => 'Thumbs.db',"
+          # echo "         2 => 'thumbs.db',"
+          # echo "      ),"
+          # echo "  'cron_log' => true,"
+          # echo "  'enable_previews' => true,"
+          # echo "  'enabledPreviewProviders' =>"
+          # echo "     array ("
+          # echo "        0 => 'OC\\Preview\\PNG',"
+          # echo "        1 => 'OC\\Preview\\JPEG',"
+          # echo "        2 => 'OC\\Preview\\GIF',"
+          # echo "        3 => 'OC\\Preview\\BMP',"
+          # echo "        4 => 'OC\\Preview\\XBitmap',"
+          # echo "        5 => 'OC\\Preview\\Movie'",
+          # echo "        6 => 'OC\\Preview\\PDF',"
+          # echo "        7 => 'OC\\Preview\\MP3',"
+          # echo "        8 => 'OC\\Preview\\TXT',"
+          # echo "        9 => 'OC\\Preview\\MarkDown',"
+          # echo "     ),"
+          # echo "  'preview_max_x' => 1024,"
+          # echo "  'preview_max_y' => 768,"
+          # echo "  'preview_max_scale_factor' => 1,"
+          # echo "  'filesystem_check_changes' => 0,"
+          # echo "  'filelocking.enabled' => 'true',"
+          # echo "  'htaccess.RewriteBase' => '/',"
+          # echo "  'integrity.check.disabled' => false,"
+          # echo "  'knowledgebaseenabled' => false,"
+          # echo "  'logfile' => '/dev/stdout',"
+          # echo "  'loglevel' => 2,"
+          # echo "  'logtimezone' => '${TZ}',"
+          # echo "  'log_rotate_size' => 104857600,"
+          # echo "  'trashbin_retention_obligation' => 'auto, 7',"
+          # echo "  'updater.release.channel' => 'stable',"
+          # echo "  'updatechecker' => false,"
+          # echo "  'check_for_working_htaccess' => false,"
+          # echo "  'overwriteprotocol' => 'https',"
+          # echo "  'overwritewebroot' => '/${nextcloud_web_root/\/}',"
+          # echo "  'auth.bruteforce.protection.enabled' => true,"
+          # echo "  'maintenance' => false,"
+          # echo "  'installed' => true,"
+          # echo ");"
+      # } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+   #fi
 }
 
 SetCrontab(){
    echo "Add crontab"
-    if [ ! -z "${NEXTCLOUD_BASE_DIR}" ]; then
-        echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html'"${NEXTCLOUD_BASE_DIR}"'/cron.php"' > "/var/spool/cron/crontabs/www-data"
+    if [ ! -z "${nextcloud_base_dir}" ]; then
+        echo "*/15 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
     else
         echo "Add crontab"
         echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html/cron.php"' > "/var/spool/cron/crontabs/www-data"
@@ -316,10 +304,10 @@ SetCrontab(){
 
 SetOwnerAndGroup(){
    echo "Correct owner and group of application files, if required"
-   find "/var/www/html" ! -user "${UID}" -exec chown "${UID}" {} \;
-   find "/var/www/html" ! -group "${GID}" -exec chgrp "${GID}" {} \;
-   find "${NEXTCLOUD_DATA_DIR}" ! -user "${UID}" -exec chown "${UID}" {} \;
-   find "${NEXTCLOUD_DATA_DIR}" ! -group "${GID}" -exec chgrp "${GID}" {} \;
+   find "${NEXTCLOUD_INSTALL_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
+   find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
+   find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
+   find "${NEXTCLOUD_DATA_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
 }
 
 ##### Script #####
