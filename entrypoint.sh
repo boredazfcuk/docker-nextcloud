@@ -55,7 +55,7 @@ Initialise(){
 }
 
 ChangeGroup(){
-   if [ ! -z "${group_id}" ] && [ -z "$(getent group "${group_id}" | cut -d: -f3)" ]; then
+   if [ "${group_id}" ] && [ -z "$(getent group "${group_id}" | cut -d: -f3)" ]; then
       echo "Group ID available, changing group ID for www-data"
       groupmod -o www-data -g "${group_id}"
    elif [ ! "$(getent group "${group}" | cut -d: -f3)" = "${group_id}" ]; then
@@ -65,7 +65,7 @@ ChangeGroup(){
 }
 
 ChangeUser(){
-   if [ ! -z "${user_id}" ] && [ ! -z "${group_id}" ] && [ -z "$(getent passwd "${user}" | cut -d: -f3)" ]; then
+   if [ "${user_id}" ] && [ "${group_id}" ] && [ -z "$(getent passwd "${user}" | cut -d: -f3)" ]; then
       echo "User ID available, changing user and primary group"
       usermod -o www-data -u "${user_id}" -g "${group_id}"
    elif [ ! "$(getent passwd "${user}" | cut -d: -f3)" = "${user_id}" ]; then
@@ -294,7 +294,7 @@ FirstRun(){
 
 SetCrontab(){
    echo "Add crontab"
-    if [ ! -z "${nextcloud_base_dir}" ]; then
+    if [ "${nextcloud_base_dir}" ]; then
         echo "*/15 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
     else
         echo "Add crontab"
