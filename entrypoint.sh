@@ -293,13 +293,8 @@ FirstRun(){
 }
 
 SetCrontab(){
-   echo "Add crontab"
-    if [ "${nextcloud_base_dir}" ]; then
-        echo "*/15 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
-    else
-        echo "Add crontab"
-        echo '*/15 * * * * /usr/local/bin/php -f "/var/www/html/cron.php"' > "/var/spool/cron/crontabs/www-data"
-    fi
+   echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
+   echo "*/15 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
 }
 
 SetOwnerAndGroup(){
