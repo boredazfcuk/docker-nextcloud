@@ -2,20 +2,20 @@
 
 # version_greater A B returns whether A > B
 version_greater() {
-    [ "$(printf '%s\n' "$@" | sort -t '.' -n -k1,1 -k2,2 -k3,3 -k4,4 | head -n 1)" != "$1" ]
+   [ "$(printf '%s\n' "$@" | sort -t '.' -n -k1,1 -k2,2 -k3,3 -k4,4 | head -n 1)" != "$1" ]
 }
 
 # return true if specified directory is empty
 directory_empty() {
-    [ -z "$(ls -A "$1/")" ]
+   [ -z "$(ls -A "$1/")" ]
 }
 
 run_as() {
-    if [ "$(id -u)" = 0 ]; then
-        su -p www-data -s /bin/sh -c "$1"
-    else
-        sh -c "$1"
-    fi
+   if [ "$(id -u)" = 0 ]; then
+      su -p www-data -s /bin/sh -c "$1"
+   else
+      sh -c "$1"
+   fi
 }
 
 WaitForDBServer(){
@@ -42,7 +42,12 @@ Initialise(){
    echo "Nextcloud database password: ${MYSQL_PASSWORD:=NextcloudPass}"
    echo "Nextcloud Admin user: ${NEXTCLOUD_ADMIN_USER:=stackman}"
    echo "Nextcloud Admin password: ${NEXTCLOUD_ADMIN_PASSWORD:=Skibidibbydibyodadubdub}"
-   echo "Nextcloud access domain: $NEXTCLOUD_TRUSTED_DOMAINS"
+   if [ "${nextcloud_access_domain}" ]; then
+      NEXTCLOUD_TRUSTED_DOMAINS="${media_access_domain} ${nextcloud_access_domain}"
+   else
+      NEXTCLOUD_TRUSTED_DOMAINS="${media_access_domain}"
+   fi
+   echo "Nextcloud access domain(s): $NEXTCLOUD_TRUSTED_DOMAINS"
    echo "Nextcloud installation root: /var/www/html"
    echo "Nextcloud web root: ${nextcloud_web_root:=/}"
    NEXTCLOUD_INSTALL_DIR="/var/www/html${nextcloud_web_root}"
@@ -92,18 +97,18 @@ InstallNextcloud(){
    max_retries=10
    try=0
    until run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ maintenance:install $install_options" || [ "$try" -gt "$max_retries" ]; do
-      echo "retrying install..."
+      echo "Retrying install..."
       try=$((try+1))
       sleep 3s
    done
    if [ "$try" -gt "$max_retries" ]; then
-      echo "installing of nextcloud failed!"
+      echo "Installing of nextcloud failed!"
       exit 1
    fi
 }
 
 SetTrustedDomains(){
-   echo "setting trusted domains…"
+   echo "Configure trusted domains..."
    NC_TRUSTED_DOMAIN_IDX=1
    for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS ; do
       DOMAIN=$(echo "$DOMAIN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
@@ -114,79 +119,76 @@ SetTrustedDomains(){
 
 PrepLaunch(){
    if expr "$1" : "apache" 1>/dev/null || [ "$1" = "php-fpm" ] || [ "${NEXTCLOUD_UPDATE:-0}" -eq 1 ]; then
-       if [ -n "${REDIS_HOST+x}" ]; then ConfigureRedis; fi
+      if [ -n "${REDIS_HOST+x}" ]; then ConfigureRedis; fi
 
-       if [ -f "${NEXTCLOUD_INSTALL_DIR}/version.php" ]; then
-           # shellcheck disable=SC2016
-           installed_version="$(/usr/local/bin/php -r '$OC_Install_Dir = getenv("NEXTCLOUD_INSTALL_DIR"); require "$OC_Install_Dir/version.php"; echo implode(".", $OC_Version);')"
-       fi
-       # shellcheck disable=SC2016
-       image_version="$(/usr/local/bin/php -r 'require "/usr/src/nextcloud/version.php"; echo implode(".", $OC_Version);')"
-       if version_greater "$installed_version" "$image_version"; then
-           echo "Can't start Nextcloud because the version of the data ($installed_version) is higher than the docker image version ($image_version) and downgrading is not supported. Are you sure you have pulled the newest image version?"
-           exit 1
-       fi
+      if [ -f "${NEXTCLOUD_INSTALL_DIR}/version.php" ]; then
+         # shellcheck disable=SC2016
+         installed_version="$(/usr/local/bin/php -r '$OC_Install_Dir = getenv("NEXTCLOUD_INSTALL_DIR"); require "$OC_Install_Dir/version.php"; echo implode(".", $OC_Version);')"
+      fi
+      # shellcheck disable=SC2016
+      image_version="$(/usr/local/bin/php -r 'require "/usr/src/nextcloud/version.php"; echo implode(".", $OC_Version);')"
+      if version_greater "$installed_version" "$image_version"; then
+         echo "Can't start Nextcloud because the version of the data ($installed_version) is higher than the docker image version ($image_version) and downgrading is not supported. Are you sure you have pulled the newest image version?"
+         exit 1
+      fi
 
-       if version_greater "$image_version" "$installed_version"; then
-           echo "Initializing nextcloud $image_version ..."
-           if [ "$installed_version" != "0.0.0.0" ]; then
-               echo "Upgrading nextcloud from $installed_version ..."
-               run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ app:list" | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_before
-           fi
-           if [ "$(id -u)" = 0 ]; then
-               rsync_options="-rlDog --chown www-data:root"
-           else
-               rsync_options="-rlD"
-           fi
-           rsync $rsync_options --delete --exclude-from=/upgrade.exclude /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
+      if version_greater "$image_version" "$installed_version"; then
+         echo "Initializing nextcloud $image_version ..."
+         if [ "$installed_version" != "0.0.0.0" ]; then
+            echo "Upgrading nextcloud from $installed_version ..."
+            run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ app:list" | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_before
+         fi
+         if [ "$(id -u)" = 0 ]; then
+            rsync_options="-rlDog --chown www-data:root"
+         else
+            rsync_options="-rlD"
+         fi
+         rsync $rsync_options --delete --exclude-from=/upgrade.exclude /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
 
-           for dir in config data custom_apps themes; do
-               if [ ! -d "${NEXTCLOUD_INSTALL_DIR}/$dir" ] || directory_empty "${NEXTCLOUD_INSTALL_DIR}/$dir"; then
-                   rsync $rsync_options --include "/$dir/" --exclude '/*' /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
+         for dir in config data custom_apps themes; do
+            if [ ! -d "${NEXTCLOUD_INSTALL_DIR}/$dir" ] || directory_empty "${NEXTCLOUD_INSTALL_DIR}/$dir"; then
+               rsync $rsync_options --include "/$dir/" --exclude '/*' /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
+            fi
+         done
+         rsync $rsync_options --include '/version.php' --exclude '/*' /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
+         echo "Initializing finished"
+
+         #install
+         if [ "$installed_version" = "0.0.0.0" ]; then
+            echo "New nextcloud installation"
+            if [ -n "${NEXTCLOUD_ADMIN_USER+x}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD+x}" ]; then
+               # shellcheck disable=SC2016
+               install_options="-n --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD"
+               if [ -n "${NEXTCLOUD_TABLE_PREFIX+x}" ]; then
+                  # shellcheck disable=SC2016
+                  install_options=$install_options' --database-table-prefix "$NEXTCLOUD_TABLE_PREFIX"'
                fi
-           done
-           rsync $rsync_options --include '/version.php' --exclude '/*' /usr/src/nextcloud/ "${NEXTCLOUD_INSTALL_DIR}/"
-           echo "Initializing finished"
-
-           #install
-           if [ "$installed_version" = "0.0.0.0" ]; then
-               echo "New nextcloud installation"
-               if [ -n "${NEXTCLOUD_ADMIN_USER+x}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD+x}" ]; then
-                   # shellcheck disable=SC2016
-                   install_options="-n --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD"
-                   if [ -n "${NEXTCLOUD_TABLE_PREFIX+x}" ]; then
-                       # shellcheck disable=SC2016
-                       install_options=$install_options' --database-table-prefix "$NEXTCLOUD_TABLE_PREFIX"'
-                   fi
-                   if [ -n "${NEXTCLOUD_DATA_DIR+x}" ]; then
-                       # shellcheck disable=SC2016
-                       install_options=$install_options' --data-dir "$NEXTCLOUD_DATA_DIR"'
-                   fi
-                   install=false
-                   if [ -n "${MYSQL_DATABASE+x}" ] && [ -n "${MYSQL_USER+x}" ] && [ -n "${MYSQL_PASSWORD+x}" ] && [ -n "${MYSQL_HOST+x}" ]; then
-                       echo "Installing with MySQL database"
-                       # shellcheck disable=SC2016
-                       install_options=$install_options' --database mysql --database-name "$MYSQL_DATABASE" --database-user "$MYSQL_USER" --database-pass "$MYSQL_PASSWORD" --database-host "$MYSQL_HOST"'
-                       install=true
-                   fi
-                   if [ "$install" = true ]; then
-                     InstallNextcloud
-                   else
-                       echo "running web-based installer on first connect!"
-                   fi
-                   if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then
-                     SetTrustedDomains
-                   fi
+               if [ -n "${NEXTCLOUD_DATA_DIR+x}" ]; then
+                  # shellcheck disable=SC2016
+                  install_options=$install_options' --data-dir "$NEXTCLOUD_DATA_DIR"'
                fi
-           else
-               #upgrade
-               run_as '/usr/local/bin/php "${NEXTCLOUD_INSTALL_DIR}/occ" upgrade'
-               run_as '/usr/local/bin/php "${NEXTCLOUD_INSTALL_DIR}/occ" app:list' | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_after
-               echo "The following apps have been disabled:"
-               diff /tmp/list_before /tmp/list_after | grep '<' | cut -d- -f2 | cut -d: -f1
-               rm -f /tmp/list_before /tmp/list_after
-           fi
-       fi
+               install=false
+               if [ -n "${MYSQL_DATABASE+x}" ] && [ -n "${MYSQL_USER+x}" ] && [ -n "${MYSQL_PASSWORD+x}" ] && [ -n "${MYSQL_HOST+x}" ]; then
+                  echo "Installing with MySQL database"
+                  # shellcheck disable=SC2016
+                  install_options=$install_options' --database mysql --database-name "$MYSQL_DATABASE" --database-user "$MYSQL_USER" --database-pass "$MYSQL_PASSWORD" --database-host "$MYSQL_HOST"'
+                  install=true
+               fi
+               if [ "$install" = true ]; then
+                  InstallNextcloud
+               else
+                  echo "Running web-based installer on first connect!"
+               fi
+            fi
+         else
+            #upgrade
+            run_as '/usr/local/bin/php "${NEXTCLOUD_INSTALL_DIR}/occ" upgrade'
+            run_as '/usr/local/bin/php "${NEXTCLOUD_INSTALL_DIR}/occ" app:list' | sed -n "/Enabled:/,/Disabled:/p" > /tmp/list_after
+            echo "The following apps have been disabled:"
+            diff /tmp/list_before /tmp/list_after | grep '<' | cut -d- -f2 | cut -d: -f1
+            rm -f /tmp/list_before /tmp/list_after
+         fi
+      fi
    fi
 }
 
@@ -315,4 +317,5 @@ PrepLaunch "$1"
 if [ ! -f "/usr/local/etc/php/php.ini" ]; then FirstRun; fi
 SetCrontab
 SetOwnerAndGroup
+if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 exec "$@"

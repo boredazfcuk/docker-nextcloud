@@ -1,0 +1,6 @@
+20200206
+
+ - Change: Trusted domains logic didn't allow access on ${media_access_domain} if ${nextcloud_access_domain} set
+ - Change: Now sets trusted domains on each launch, instead of during installation
+ - Change: Set indents to be 3 spaces... Three that's the magic number
+ - Change: Set echo strings start with capital letters. Case sensitivity is important in proper OS' dammnit. Sentence case just easier to stick to
