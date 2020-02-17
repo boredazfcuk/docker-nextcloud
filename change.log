@@ -1,3 +1,7 @@
+20200212
+
+ - Change: Healtheck now checks that PHP, FastCGI and the Nextcloud DB are all available
+
 20200206
 
  - Change: Trusted domains logic didn't allow access on ${media_access_domain} if ${nextcloud_access_domain} set
