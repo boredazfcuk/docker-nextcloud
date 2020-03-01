@@ -25,9 +25,11 @@ WaitForDBServer(){
       echo "MYSQL_ROOT_PASSWORD variable not set, exiting"
       exit 1
    fi
-   while [ "$(nc -z mariadb 3306; echo $?)" -ne 0 ]; do
+   db_server_online="$(mysql --host="${MYSQL_HOST:=mariadb}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")"
+   while [ "${db_server_online}" = 0 ]; do
       echo "Waiting for database server, ${MYSQL_HOST}, to come online..." 
       sleep 10
+      db_server_online="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")" 
    done
 }
 
