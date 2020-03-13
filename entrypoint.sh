@@ -21,6 +21,7 @@ run_as() {
 WaitForDBServer(){
    echo -e "\n"
    echo "***** Starting Nextcloud container *****"
+   echo "$(cat /etc/*-release | grep "PRETTY_NAME" | sed 's/PRETTY_NAME=//g' | sed 's/"//g')"
    if [ -z "${MYSQL_ROOT_PASSWORD}" ]; then
       echo "MYSQL_ROOT_PASSWORD variable not set, exiting"
       exit 1
