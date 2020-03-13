@@ -105,6 +105,8 @@ InstallNextcloud(){
    if [ "$try" -gt "$max_retries" ]; then
       echo "Installing of nextcloud failed!"
       exit 1
+   else
+      run_as "echo y | $(which php) ${NEXTCLOUD_INSTALL_DIR}/occ db:convert-filecache-bigint"
    fi
 }
 
@@ -263,7 +265,7 @@ FirstRun(){
           # echo "        2 => 'OC\\Preview\\GIF',"
           # echo "        3 => 'OC\\Preview\\BMP',"
           # echo "        4 => 'OC\\Preview\\XBitmap',"
-          # echo "        5 => 'OC\\Preview\\Movie'",
+          # echo "        5 => 'OC\\Preview\\Movie',"
           # echo "        6 => 'OC\\Preview\\PDF',"
           # echo "        7 => 'OC\\Preview\\MP3',"
           # echo "        8 => 'OC\\Preview\\TXT',"
