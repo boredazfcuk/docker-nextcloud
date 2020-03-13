@@ -42,6 +42,7 @@ Initialise(){
    echo "Nextcloud database password: ${MYSQL_PASSWORD:=NextcloudPass}"
    echo "Nextcloud Admin user: ${NEXTCLOUD_ADMIN_USER:=stackman}"
    echo "Nextcloud Admin password: ${NEXTCLOUD_ADMIN_PASSWORD:=Skibidibbydibyodadubdub}"
+   echo "Nextcloud Update: ${NEXTCLOUD_UPDATE:=0}"
    if [ "${nextcloud_access_domain}" ]; then
       NEXTCLOUD_TRUSTED_DOMAINS="${media_access_domain} ${nextcloud_access_domain}"
    else
