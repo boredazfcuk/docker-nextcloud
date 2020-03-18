@@ -1,6 +1,6 @@
 FROM nextcloud:17.0.3-fpm
 MAINTAINER boredazfcuk
-ARG app_dependencies="tzdata passwd redis-server mariadb-client smbclient procps"
+ARG app_dependencies="tzdata passwd redis-server mariadb-client smbclient procps ffmpeg"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
 echo "$(date '+%c') | Install dependencies" && \
