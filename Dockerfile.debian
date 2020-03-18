@@ -1,20 +1,19 @@
-#FROM nextcloud:stable-fpm-alpine
 FROM nextcloud:17.0.3-fpm
 MAINTAINER boredazfcuk
+ARG app_dependencies="tzdata passwd redis-server mariadb-client smbclient procps"
 
-RUN echo "$(date '+%d/%m/%Y - %H:%M:%S') | ***** BUILD STARTED *****" && \
-echo "$(date '+%d/%m/%Y - %H:%M:%S') | Install dependencies" && \
+RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
+echo "$(date '+%c') | Install dependencies" && \
    apt-get update && \
-   apt-get install -y tzdata passwd redis-server mariadb-client smbclient
-# php-redis php-fpm
+   apt-get install -y ${app_dependencies}
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 
-RUN echo "$(date '+%d/%m/%Y - %H:%M:%S') | Set execute permissions on scripts" && \
+RUN echo "$(date '+%c') | Set execute permissions on scripts" && \
    chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh && \
    apt-get clean && \
-echo "$(date '+%d/%m/%Y - %H:%M:%S') | ***** BUILD COMPLETE *****"
+echo "$(date '+%c') | ***** BUILD COMPLETE *****"
 
 HEALTHCHECK --start-period=10s --interval=1m --timeout=10s \
    CMD /usr/local/bin/healthcheck.sh
