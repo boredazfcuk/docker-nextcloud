@@ -1,6 +1,6 @@
 FROM nextcloud:stable-fpm-alpine
 MAINTAINER boredazfcuk
-ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps"
+ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps samba-client"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
 echo "$(date '+%c') | Install dependencies" && \
