@@ -1,4 +1,4 @@
-FROM nextcloud:17.0.3-fpm
+FROM nextcloud:stable-fpm
 MAINTAINER boredazfcuk
 ARG app_dependencies="tzdata passwd redis-server mariadb-client smbclient procps ffmpeg cifs-utils sssd realmd"
 
