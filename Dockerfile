@@ -1,16 +1,20 @@
 FROM nextcloud:stable-fpm-alpine
 MAINTAINER boredazfcuk
-ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps samba-client ffmpeg"
+ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps samba-client ffmpeg cifs-utils php7-dev"
+ARG build_dependencies="g++"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
 echo "$(date '+%c') | Install dependencies" && \
-   apk add --no-cache --no-progress ${app_dependencies}
+   apk add --no-cache --no-progress ${app_dependencies} &&
+apk add --no-cache --no-progress ${build_dependencies} &&
+   pecl install smbclient
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 
 RUN echo "$(date '+%c') | Set execute permissions on scripts" && \
    chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh && \
+   apk del ${build_dependencies} && \
 echo "$(date '+%c') | ***** BUILD COMPLETE *****"
 
 HEALTHCHECK --start-period=10s --interval=1m --timeout=10s \
