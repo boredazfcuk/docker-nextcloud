@@ -225,7 +225,7 @@ FirstRun(){
    echo "Set PHP pool options"
    sed -i -e 's#^user =.*#user = www-data#' \
       -e 's#^group =.*#group = www-data#' \
-      -e 's#^listen =.*#listen = $HOSTNAME:9000#' \
+      -e 's#^listen =.*#listen = $HOSTNAME:9001#' \
       -e 's#^;access.log =.*#access.log = /dev/stderr#' \
       -e 's#^;env[HOSTNAME] = $HOSTNAME#env[HOSTNAME] = $HOSTNAME#' \
       -e 's#^;env[PATH] = /usr/local/bin:/usr/bin:/bin#env[PATH] = /usr/local/bin:/usr/bin:/bin#' \

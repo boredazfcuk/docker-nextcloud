@@ -8,7 +8,7 @@ fi
 SCRIPT_NAME="/status"
 SCRIPT_FILENAME="/usr/local/php/php/fpm/status.html"
 REQUEST_METHOD="GET"
-if [ "$("$(which cgi-fcgi)" -bind -connect "${HOSTNAME}:9000" >/dev/null; echo $?)" -ne 0 ]; then
+if [ "$("$(which cgi-fcgi)" -bind -connect "${HOSTNAME}:9001" >/dev/null; echo $?)" -ne 0 ]; then
    echo "FastCGI server not responding"
    exit 1
 fi
