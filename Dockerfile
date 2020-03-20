@@ -5,6 +5,7 @@ ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi pr
 RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
 echo "$(date '+%c') | Install dependencies" && \
    apk add --no-cache --no-progress ${app_dependencies}
+   
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
