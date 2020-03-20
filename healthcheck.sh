@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/sh
 
 if [ "$("$(which php)" -v > /dev/null; echo $?)" -ne 0 ]; then
    echo "PHP application not available"
