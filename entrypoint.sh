@@ -262,7 +262,8 @@ FirstRun(){
       if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/docker.conf"; fi
       if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/zz-docker.conf"; fi
       echo "Configure PHP config options"
-      sed -i -e 's#^doc_root =*#doc_root = /var/www/html#' \
+      sed -i \
+         -e 's#^doc_root.*#doc_root = /var/www/html#' \
          -e 's#^memory_limit =.*#memory_limit = 512M#' \
          -e 's#^output_buffering =.*#output_buffering = Off#' \
          -e 's#^max_execution_time =.*#max_execution_time = 1800#' \
