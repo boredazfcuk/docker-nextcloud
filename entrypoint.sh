@@ -35,8 +35,10 @@ WaitForDBServer(){
 }
 
 Initialise(){
+   lan_ip="$(hostname -i)"
    echo "Local user: ${user:=nextcloud}:${user_id:=1000}"
    echo "Local group: ${group:=www-data}:${group_id:=1000}"
+   echo "LAN IP Address: ${lan_ip}"
    echo "Database server: ${MYSQL_HOST}"
    echo "Nextcloud database name: ${MYSQL_DATABASE:=nextcloud_db}"
    echo "Nextcloud database user: ${MYSQL_USER:=nextcloud}"
@@ -198,55 +200,118 @@ PrepLaunch(){
 
 FirstRun(){
    echo "First run detected, create default settings"
-   echo "Backup PHP config files"
-   cp /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf.default
-   cp /usr/local/etc/php-fpm.conf /usr/local/etc/php-fpm.conf.default
-   cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
-   cp /usr/local/etc/php/php.ini /usr/local/etc/php/php.ini.default
-   echo "Set PHP config options"
-   sed -i -e 's#^doc_root =*#doc_root = /var/www/html#' \
-      -e 's#^memory_limit =.*#memory_limit = 512M#' \
-      -e 's#^output_buffering =.*#output_buffering = Off#' \
-      -e 's#^max_execution_time =.*#max_execution_time = 1800#' \
-      -e 's#^max_input_time =.*#max_input_time = 3600#' \
-      -e 's#^post_max_size =.*#post_max_size = 10G#' \
-      -e 's#^upload_max_filesize =.*#upload_max_filesize = 10G#' \
-      -e 's#^max_file_uploads =.*#max_file_uploads = 100#' \
-      -e 's#^;date.timezone.*#date.timezone = Europe/London#' \
-      -e 's#^;opcache.enable=.*#opcache.enable=1#' \
-      -e 's#^;opcache.enable_cli=.*#opcache.enable_cli=1#' \
-      -e 's#^;opcache.memory_consumption=.*#opcache.memory_consumption=128#' \
-      -e 's#^;opcache.interned_strings_buffer=.*#opcache.interned_strings_buffer=8#' \
-      -e 's#^;opcache.max_accelerated_files=.*#opcache.max_accelerated_files=10000#' \
-      -e 's#^;opcache.revalidate_freq=.*#opcache.revalidate_freq=1#' \
-      -e 's#^;opcache.save_comments=.*#opcache.save_comments=1#' \
-      -e 's#^;session.cookie_secure.*#session.cookie_secure = True#' \
-      /usr/local/etc/php/php.ini
-   echo "Set PHP pool options"
-   sed -i -e 's#^user =.*#user = www-data#' \
-      -e 's#^group =.*#group = www-data#' \
-      -e 's#^listen =.*#listen = $HOSTNAME:9001#' \
-      -e 's#^;access.log =.*#access.log = /dev/stderr#' \
-      -e 's#^;env[HOSTNAME] = $HOSTNAME#env[HOSTNAME] = $HOSTNAME#' \
-      -e 's#^;env[PATH] = /usr/local/bin:/usr/bin:/bin#env[PATH] = /usr/local/bin:/usr/bin:/bin#' \
-      -e 's#^;env[TMP] = /tmp#env[TMP] = /tmp#' \
-      -e 's#^;env[TMPDIR] = /tmp#env[TMPDIR] = /tmp#' \
-      -e 's#^;env[TEMP] = /tmp#env[TEMP] = /tmp#' \
-      -e 's#^pm.max_children =.*#pm.max_children = 240#' \
-      -e 's#^pm.start_servers =.*#pm.start_servers = 6#' \
-      -e 's#^pm.min_spare_servers =.*#pm.min_spare_servers = 3#' \
-      -e 's#^pm.max_spare_servers =.*#pm.max_spare_servers = 9#' \
-      -e 's#^;pm.max_requests =.*#pm.max_requests = 250#' \
-      -e 's#^;pm.status_path =.*#pm.status_path = /status#' \
-      /usr/local/etc/php-fpm.d/www.conf
-   echo "Set PHP-FPM options"
-   sed -i -e 's#;error_log =.*#error_log = /dev/stderr#' \
-      -e 's#;log_level =.*#log_level = notice#' \
-      -e 's#;daemonize =.*#daemonize = no#' \
-      -e 's#;emergency_restart_threshold =.*#emergency_restart_threshold = 10#' \
-      -e 's#;emergency_restart_interval =.*#emergency_restart_interval = 1m#' \
-      -e 's#;process_control_timeout =.*#process_control_timeout = 10s#' \
-      /usr/local/etc/php-fpm.conf
+   os_release="$(cat /etc/os-release | grep ^"ID=" | cut -d= -f2)"
+   if [ "${os_release}" = "alpine" ]; then
+      echo "Backup PHP config files"
+      cp /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf.default
+      cp /usr/local/etc/php-fpm.conf /usr/local/etc/php-fpm.conf.default
+      cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
+      cp /usr/local/etc/php/php.ini /usr/local/etc/php/php.ini.default
+      if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/docker.conf"; fi
+      if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/zz-docker.conf"; fi
+      echo "Configure PHP config options"
+      sed -i -e 's#^doc_root =*#doc_root = /var/www/html#' \
+         -e 's#^memory_limit =.*#memory_limit = 512M#' \
+         -e 's#^output_buffering =.*#output_buffering = Off#' \
+         -e 's#^max_execution_time =.*#max_execution_time = 1800#' \
+         -e 's#^max_input_time =.*#max_input_time = 3600#' \
+         -e 's#^post_max_size =.*#post_max_size = 10G#' \
+         -e 's#^upload_max_filesize =.*#upload_max_filesize = 10G#' \
+         -e 's#^max_file_uploads =.*#max_file_uploads = 100#' \
+         -e 's#^;date.timezone.*#date.timezone = Europe/London#' \
+         -e 's#^;opcache.enable=.*#opcache.enable=1#' \
+         -e 's#^;opcache.enable_cli=.*#opcache.enable_cli=1#' \
+         -e 's#^;opcache.memory_consumption=.*#opcache.memory_consumption=128#' \
+         -e 's#^;opcache.interned_strings_buffer=.*#opcache.interned_strings_buffer=8#' \
+         -e 's#^;opcache.max_accelerated_files=.*#opcache.max_accelerated_files=10000#' \
+         -e 's#^;opcache.revalidate_freq=.*#opcache.revalidate_freq=1#' \
+         -e 's#^;opcache.save_comments=.*#opcache.save_comments=1#' \
+         -e 's#^;session.cookie_secure.*#session.cookie_secure = True#' \
+         /usr/local/etc/php/php.ini
+      echo "Create PHP pool options"
+      {
+         echo '[www]'
+         echo 'user = www-data'
+         echo 'group = www-data'
+         echo 'listen = 127.0.0.1:9000'
+         echo 'pm = dynamic'
+         echo 'pm.max_children = 240'
+         echo 'pm.start_servers = 6'
+         echo 'pm.min_spare_servers = 3'
+         echo 'pm.max_spare_servers = 9'
+         echo 'pm.max_requests = 250'
+         echo 'pm.status_path = /status'
+         echo 'access.log = /dev/stderr'
+      } > /usr/local/etc/php-fpm.d/www.conf
+      echo "Create PHP-FPM options"
+      {
+         echo '[global]'
+         echo 'error_log = /dev/stderr'
+         echo 'log_level = notice'
+         echo 'emergency_restart_threshold = 10'
+         echo 'emergency_restart_interval = 1m'
+         echo 'process_control_timeout = 10s'
+         echo 'daemonize = no'
+         echo 'include=/usr/local/etc/php-fpm.d/*.conf'
+      } > /usr/local/etc/php-fpm.conf
+   elif [ "${os_release}" = "debian" ]; then
+      echo "Backup PHP config files"
+      cp "/etc/php/7.3/fpm/php.ini" "/etc/php/7.3/fpm/php.ini.default"
+      mv "/etc/php/7.3/fpm/pool.d/www.conf" "/etc/php/7.3/fpm/pool.d/www.conf.default"
+      mv "/etc/php/7.3/fpm/php-fpm.conf" "/etc/php/7.3/fpm/php-fpm.conf.default"
+      if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/docker.conf"; fi
+      if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/zz-docker.conf"; fi
+      echo "Configure PHP config options"
+      sed -i -e 's#^doc_root =*#doc_root = /var/www/html#' \
+         -e 's#^memory_limit =.*#memory_limit = 512M#' \
+         -e 's#^output_buffering =.*#output_buffering = Off#' \
+         -e 's#^max_execution_time =.*#max_execution_time = 1800#' \
+         -e 's#^max_input_time =.*#max_input_time = 3600#' \
+         -e 's#^post_max_size =.*#post_max_size = 10G#' \
+         -e 's#^upload_max_filesize =.*#upload_max_filesize = 10G#' \
+         -e 's#^max_file_uploads =.*#max_file_uploads = 100#' \
+         -e 's#^;date.timezone.*#date.timezone = Europe/London#' \
+         -e 's#^;opcache.enable=.*#opcache.enable=1#' \
+         -e 's#^;opcache.enable_cli=.*#opcache.enable_cli=1#' \
+         -e 's#^;opcache.memory_consumption=.*#opcache.memory_consumption=128#' \
+         -e 's#^;opcache.interned_strings_buffer=.*#opcache.interned_strings_buffer=8#' \
+         -e 's#^;opcache.max_accelerated_files=.*#opcache.max_accelerated_files=10000#' \
+         -e 's#^;opcache.revalidate_freq=.*#opcache.revalidate_freq=1#' \
+         -e 's#^;opcache.save_comments=.*#opcache.save_comments=1#' \
+         -e 's#^;session.cookie_secure.*#session.cookie_secure = True#' \
+         "/etc/php/7.3/fpm/php.ini"
+      echo "Create PHP pool options"
+      {
+         echo '[www]'
+         echo 'user = www-data'
+         echo 'group = www-data'
+         echo 'listen = 127.0.0.1:9000'
+         echo 'pm = dynamic'
+         echo 'pm.max_children = 240'
+         echo 'pm.start_servers = 6'
+         echo 'pm.min_spare_servers = 3'
+         echo 'pm.max_spare_servers = 9'
+         echo 'pm.max_requests = 250'
+         echo 'pm.status_path = /status'
+         echo 'access.log = /var/log/php7.3-fpm.log'
+      } > "/etc/php/7.3/fpm/pool.d/www.conf"
+      echo "Create PHP-FPM options"
+      {
+         echo '[global]'
+         echo 'error_log = /dev/stderr'
+         echo ';error_log = /var/log/php7.3-fpm.log'
+         echo 'log_level = notice'
+         echo 'emergency_restart_threshold = 10'
+         echo 'emergency_restart_interval = 1m'
+         echo 'process_control_timeout = 10s'
+         echo 'daemonize = no'
+         echo 'include=/etc/php/7.3/fpm/pool.d/www.conf'
+      } > "/etc/php/7.3/fpm/php-fpm.conf"
+   else
+      echo "OS not recognised - exiting"
+      sleep 120
+      exit 1
+   fi
    if [ -f "${NEXTCLOUD_INSTALL_DIR}/config/config.php" ]; then
       echo "${NEXTCLOUD_INSTALL_DIR}/config/config.php - Exists"
       if [ "$(grep -c "blacklisted_files" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
@@ -296,7 +361,6 @@ FirstRun(){
             echo ");"
          } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
       fi
-
       if [ "$(grep -c "preview_max_scale_factor" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
          { 
@@ -431,9 +495,16 @@ FirstRun(){
             echo ");"
          } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
       fi
-# echo ");
-# } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+      echo "First-run initialisation complete"
+      rm "/initialise_container"
    fi
+}
+
+Configure(){
+   echo "Configure php-fpm listen address"
+   sed -i \
+      -e "s%listen =.*%listen = ${lan_ip}:9001%" \
+      /usr/local/etc/php-fpm.d/www.conf
 }
 
 SetCrontab(){
@@ -456,7 +527,8 @@ ChangeGroup
 ChangeUser
 SetOwnerAndGroup
 PrepLaunch "$1"
-if [ ! -f "/usr/local/etc/php/php.ini" ]; then FirstRun; fi
+if [ -f "/initialise_container" ]; then FirstRun; fi
+Configure
 SetCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi

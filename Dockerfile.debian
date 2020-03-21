@@ -13,6 +13,7 @@ COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 RUN echo "$(date '+%c') | Set execute permissions on scripts" && \
    chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh && \
    apt-get clean && \
+   echo "Init" > "/initialise_container" && \
 echo "$(date '+%c') | ***** BUILD COMPLETE *****"
 
 HEALTHCHECK --start-period=10s --interval=1m --timeout=10s \
