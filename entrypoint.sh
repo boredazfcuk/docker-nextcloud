@@ -242,6 +242,11 @@ FirstRun(){
          echo 'pm.max_requests = 250'
          echo 'pm.status_path = /status'
          echo 'access.log = /dev/stderr'
+         echo 'env[HOSTNAME] = $HOSTNAME'
+         echo 'env[PATH] = /usr/local/bin:/usr/bin:/bin'
+         echo 'env[TMP] = /tmp'
+         echo 'env[TMPDIR] = /tmp'
+         echo 'env[TEMP] = /tmp'
       } > /usr/local/etc/php-fpm.d/www.conf
       echo "Create PHP-FPM options"
       {
@@ -258,6 +263,7 @@ FirstRun(){
       echo "Backup PHP config files"
       cp "/etc/php/7.3/fpm/php.ini" "/etc/php/7.3/fpm/php.ini.default"
       mv "/etc/php/7.3/fpm/pool.d/www.conf" "/etc/php/7.3/fpm/pool.d/www.conf.default"
+      if [ -f "/etc/php/7.3/fpm/php-fpm.conf-production" ]; then mv "/etc/php/7.3/fpm/php-fpm.conf-production" "/etc/php/7.3/fpm/php-fpm.conf-production.default"; fi
       mv "/etc/php/7.3/fpm/php-fpm.conf" "/etc/php/7.3/fpm/php-fpm.conf.default"
       if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/docker.conf"; fi
       if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then rm "/usr/local/etc/php-fpm.d/zz-docker.conf"; fi
@@ -295,6 +301,11 @@ FirstRun(){
          echo 'pm.max_requests = 250'
          echo 'pm.status_path = /status'
          echo 'access.log = /var/log/php7.3-fpm.log'
+         echo 'env[HOSTNAME] = $HOSTNAME'
+         echo 'env[PATH] = /usr/local/bin:/usr/bin:/bin'
+         echo 'env[TMP] = /tmp'
+         echo 'env[TMPDIR] = /tmp'
+         echo 'env[TEMP] = /tmp'
       } > "/etc/php/7.3/fpm/pool.d/www.conf"
       echo "Create PHP-FPM options"
       {
