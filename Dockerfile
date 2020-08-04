@@ -1,5 +1,7 @@
 FROM nextcloud:stable-fpm-alpine
 MAINTAINER boredazfcuk
+# nextcloud_version variable not used. Simply increment to force a full rebuild of the container
+ARG nextcloud_version="18.0.7"
 ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps ffmpeg"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
