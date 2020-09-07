@@ -4,7 +4,7 @@ MAINTAINER boredazfcuk
 ARG nextcloud_version="18.0.7"
 ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps ffmpeg"
 
-RUN echo "$(date '+%c') | ***** BUILD STARTED *****" && \
+RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
 echo "$(date '+%c') | Install dependencies" && \
    apk add --no-cache --no-progress ${app_dependencies}
 
