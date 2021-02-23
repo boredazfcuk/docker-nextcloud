@@ -1,3 +1,7 @@
+20210217
+
+ - Change: Rebase to Debian. I've now deployed this at work and Alpine Linux does not have the necessary packages to work with LDAP/SMB based fileshares
+
 20200320
 
  - Change: Coronavirus has led me to make changes to get this deployed at work. Goign to be lots of changes, and due to time constraints, I'm not going to be updating this log for the time being

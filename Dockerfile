@@ -1,18 +1,21 @@
-FROM nextcloud:stable-fpm-alpine
+FROM nextcloud:stable-fpm
 MAINTAINER boredazfcuk
+
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
 ARG nextcloud_version="18.0.7"
-ARG app_dependencies="shadow tzdata redis php7-pecl-redis mariadb-client fcgi procps ffmpeg"
+ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient cifs-utils sssd realmd"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
 echo "$(date '+%c') | Install dependencies" && \
-   apk add --no-cache --no-progress ${app_dependencies}
+   apt-get update && \
+   apt-get install -y ${app_dependencies}
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 
 RUN echo "$(date '+%c') | Set execute permissions on scripts" && \
    chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh && \
+   apt-get clean && \
    echo "Init" > "/initialise_container" && \
 echo "$(date '+%c') | ***** BUILD COMPLETE *****"
 
