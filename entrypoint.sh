@@ -445,7 +445,21 @@ FirstRun(){
    fi
 }
 
-Configure(){
+ConfigureSamba(){
+   if [ "$(grep -c "client min protocol = SMB2_02" /etc/samba/smb.conf)" -eq 0 ]; then
+      echo "Set minimum Samba protocol to: SMB2_02"
+      sed -i '/\[global]/a#   client min protocol = SMB2_02' /etc/samba/smb.conf
+      sed -i 's/#   client min protocol = SMB2_02/   client min protocol = SMB2_02/' /etc/samba/smb.conf
+   elif [ "$(grep -c "client min protocol = SMB2_02" /etc/samba/smb.conf)" -eq 1 ]; then
+      echo "Minimum Samba protocol SMB2_02 already set"
+   else
+      echo "Samba onfiguration error - cannot continue"
+      sleep 120
+      exit 1
+   fi
+}
+
+ConfigurePHPFPM(){
    echo "Configure php-fpm listen address"
    sed -i \
       -e "s%listen =.*%listen = ${lan_ip}:9001%" \
@@ -473,7 +487,8 @@ ChangeUser
 SetOwnerAndGroup
 PrepLaunch "$1"
 if [ -f "/initialise_container" ]; then FirstRun; fi
-Configure
+ConfigurePHPFPM
+ConfigureSamba
 SetCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi

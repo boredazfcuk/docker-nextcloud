@@ -3,12 +3,14 @@ MAINTAINER boredazfcuk
 
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
 ARG nextcloud_version="18.0.7"
-ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient cifs-utils sssd realmd"
+ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
 echo "$(date '+%c') | Install dependencies" && \
    apt-get update && \
-   apt-get install -y ${app_dependencies}
+   apt-get install -y ${app_dependencies} && \
+   pecl install smbclient && \
+   docker-php-ext-enable smbclient
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
