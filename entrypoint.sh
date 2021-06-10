@@ -472,7 +472,9 @@ SetCrontab(){
 }
 
 SetOwnerAndGroup(){
-   echo "Correct owner and group of application files, if required"
+   echo "Set owner and group of application files"
+   chown "${user_id}:${group_id}" "${NEXTCLOUD_DATA_DIR}"
+   chown "${user_id}:${group_id}" "${NEXTCLOUD_INSTALL_DIR}"
    find "${NEXTCLOUD_INSTALL_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
    find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
    find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
