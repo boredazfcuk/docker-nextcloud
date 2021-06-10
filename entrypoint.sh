@@ -288,9 +288,9 @@ FirstRun(){
       if [ "$(grep -c "enabledPreviewProviders" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
          { 
-            echo "  'enabledPreviewProviders' =>"
             echo "  'preview_max_x' => 1280,"
             echo "  'preview_max_y' => 1024,"
+            echo "  'enabledPreviewProviders' =>"
             echo "  array ("
             echo "    0 => 'OC\\Preview\\PNG',"
             echo "    1 => 'OC\\Preview\\JPEG',"
