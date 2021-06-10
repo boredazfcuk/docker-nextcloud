@@ -1,3 +1,7 @@
+20210610
+
+ - Change: Merged PR from Sowevo@GitHub to add DingTalk notifications
+
 20210217
 
  - Change: Rebase to Debian. I've now deployed this at work and Alpine Linux does not have the necessary packages to work with LDAP/SMB based fileshares
