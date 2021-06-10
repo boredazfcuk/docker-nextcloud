@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # version_greater A B returns whether A > B
 version_greater() {
@@ -414,9 +414,8 @@ FirstRun(){
       fi
       if [ "$(grep -c "overwritewebroot" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         #new_web_root="/${nextcloud_web_root/\/}"
          { 
-            echo "  'overwritewebroot' => '${new_web_root}',"
+            echo "  'overwritewebroot' => '/${nextcloud_web_root/\/}',"
             echo ");"
          } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
       fi
