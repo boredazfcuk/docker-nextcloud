@@ -468,13 +468,14 @@ ConfigurePHPFPM(){
 
 SetCrontab(){
    echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
-   echo "*/15 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
+   echo "*/5 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
 }
 
 SetOwnerAndGroup(){
-   echo "Set owner and group of application files"
+   echo "Set owner and group of application files to ${user_id}:${group_id}"
    chown "${user_id}:${group_id}" "/var/www/data"
    chown "${user_id}:${group_id}" "/var/www/html"
+   chown "${user_id}:${group_id}" "/var/spool/cron/crontabs/www-data"
    find "${NEXTCLOUD_INSTALL_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
    find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
    find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
