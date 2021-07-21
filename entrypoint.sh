@@ -271,185 +271,89 @@ FirstRun(){
    if [ -f "${NEXTCLOUD_INSTALL_DIR}/config/config.php" ]; then
       echo "${NEXTCLOUD_INSTALL_DIR}/config/config.php - Exists"
       if [ "$(grep -c "blacklisted_files" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'blacklisted_files' =>"
-            echo "  array ("
-            echo "     0 => '.htaccess',"
-            echo "     1 => 'Thumbs.db',"
-            echo "     2 => 'thumbs.db',"
-            echo "  ),"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set blacklisted_files 0 --value=.htaccess"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set blacklisted_files 1 --value=Thumbs.db"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set blacklisted_files 2 --value=thumbs.db"
       fi
       if [ "$(grep -c "cron_log" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'cron_log' => true,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set cron_log --value=true"
       fi
       if [ "$(grep -c "enable_previews" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'enable_previews' => true,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enable_previews --value=true"
+      fi
+      if [ "$(grep -c "preview_max" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_x --value=1280"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_y --value=1024"
       fi
       if [ "$(grep -c "enabledPreviewProviders" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'preview_max_x' => 1280,"
-            echo "  'preview_max_y' => 1024,"
-            echo "  'enabledPreviewProviders' =>"
-            echo "  array ("
-            echo "    0 => 'OC\\Preview\\PNG',"
-            echo "    1 => 'OC\\Preview\\JPEG',"
-            echo "    2 => 'OC\\Preview\\GIF',"
-            echo "    3 => 'OC\\Preview\\BMP',"
-            echo "    4 => 'OC\\Preview\\XBitmap',"
-            echo "    5 => 'OC\\Preview\\Movie',"
-            echo "    6 => 'OC\\Preview\\PDF',"
-            echo "    7 => 'OC\\Preview\\MP3',"
-            echo "    8 => 'OC\\Preview\\TXT',"
-            echo "    9 => 'OC\\Preview\\MarkDown',"
-            echo "  ),"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 0 --value=OC\\Preview\\PNG"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 1 --value=OC\\Preview\\JPEG"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 2 --value=OC\\Preview\\GIF"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 3 --value=OC\\Preview\\BMP"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 4 --value=OC\\Preview\\XBitmap"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 5 --value=OC\\Preview\\Movie"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 6 --value=OC\\Preview\\PDF"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 7 --value=OC\\Preview\\MP3"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 8 --value=OC\\Preview\\TXT"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 9 --value=OC\\Preview\\MarkDown"
       fi
       if [ "$(grep -c "preview_max_scale_factor" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'preview_max_scale_factor' => 1,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_scale_factor --value=1"
       fi
       if [ "$(grep -c "filesystem_check_changes" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'filesystem_check_changes' => 0,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set filesystem_check_changes --value=0"
       fi
       if [ "$(grep -c "filelocking.enabled" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'filelocking.enabled' => 'true',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set filelocking.enabled --value=true"
       fi
       if [ "$(grep -c "htaccess.RewriteBase" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'htaccess.RewriteBase' => '/',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set htaccess.RewriteBase --value=/"
       fi
       if [ "$(grep -c "integrity.check.disabled" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'integrity.check.disabled' => false,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set integrity.check.disabled --value=false"
       fi
       if [ "$(grep -c "knowledgebaseenabled" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'knowledgebaseenabled' => false,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set knowledgebaseenabled --value=false"
       fi
       if [ "$(grep -c "logfile" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'logfile' => '/dev/stdout',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set logfile --value=/dev/stdout"
       fi
       if [ "$(grep -c "loglevel" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'loglevel' => 2,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set loglevel --value=2"
       fi
       if [ "$(grep -c "logtimezone" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'logtimezone' => '${TZ}',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set logtimezone --value=${TZ}"
       fi
-      if [ "$(grep -c "logtimezone" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'logtimezone' => '${TZ}',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+      if [ "$(grep -c "log_rotate_size" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set log_rotate_size --value=104857600"
       fi
 # echo "  'log_rotate_size' => 104857600,"
       if [ "$(grep -c "trashbin_retention_obligation" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'trashbin_retention_obligation' => 'auto, 7',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trashbin_retention_obligation --value=auto, 7"
       fi
       if [ "$(grep -c "updater.release.channel" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'updater.release.channel' => 'stable',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set updater.release.channel --value=stable"
       fi
       if [ "$(grep -c "updatechecker" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'updatechecker' => false,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set updatechecker --value=false"
       fi
       if [ "$(grep -c "check_for_working_htaccess" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'check_for_working_htaccess' => false,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set check_for_working_htaccess --value=false"
       fi
       if [ "$(grep -c "overwriteprotocol" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'overwriteprotocol' => 'https',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set overwriteprotocol --value=https"
       fi
       if [ "$(grep -c "overwritewebroot" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'overwritewebroot' => '/${nextcloud_web_root/\/}',"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set overwritewebroot --value=${nextcloud_web_root/\/}"
       fi
       if [ "$(grep -c "auth.bruteforce.protection.enabled" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'auth.bruteforce.protection.enabled' => true,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set auth.bruteforce.protection.enabled --value=true"
       fi
       if [ "$(grep -c "maintenance" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'maintenance' => false,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set maintenance --value=false"
       fi
       if [ "$(grep -c "installed" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         sed -i '$d' "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
-         { 
-            echo "  'installed' => true,"
-            echo ");"
-         } >> "${NEXTCLOUD_INSTALL_DIR}/config/config.php"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set installed --value=true"
       fi
       echo "First-run initialisation complete"
       rm "/initialise_container"
