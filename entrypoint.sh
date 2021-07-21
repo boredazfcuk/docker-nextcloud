@@ -216,8 +216,8 @@ FirstRun(){
    cp /usr/local/etc/php-fpm.conf /usr/local/etc/php-fpm.conf.default
    cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
    cp /usr/local/etc/php/php.ini /usr/local/etc/php/php.ini.default
-   #if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then mv "/usr/local/etc/php-fpm.d/docker.conf.old"; fi
-   #if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then mv "/usr/local/etc/php-fpm.d/zz-docker.conf.old"; fi
+   if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then mv "/usr/local/etc/php-fpm.d/docker.conf" "/usr/local/etc/php-fpm.d/docker.conf.default"; fi
+   if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then mv "/usr/local/etc/php-fpm.d/zz-docker.conf" "/usr/local/etc/php-fpm.d/zz-docker.conf.default"; fi
    echo "Configure PHP config options"
    sed -i -e 's#^doc_root =*#doc_root = /var/www/html#' \
       -e 's#^memory_limit =.*#memory_limit = 512M#' \
