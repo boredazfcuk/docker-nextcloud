@@ -117,6 +117,7 @@ SetTrustedDomains(){
    echo "Configure trusted domains..."
    NC_TRUSTED_DOMAIN_IDX=1
    for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS ; do
+      echo " - adding: $DOMAIN"
       DOMAIN=$(echo "$DOMAIN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
       run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_domains $NC_TRUSTED_DOMAIN_IDX --value=$DOMAIN"
       NC_TRUSTED_DOMAIN_IDX=$(($NC_TRUSTED_DOMAIN_IDX+1))
@@ -125,7 +126,9 @@ SetTrustedDomains(){
 
 SetTrustedProxy(){
    echo "Configure trusted proxy..."
-   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value="$(getent hosts nginx | awk '{print $1}')"
+   trusted_proxy_ip="$(getent hosts nginx | awk '{print $1}')"
+   echo " - adding: ${trusted_proxy_ip}"
+   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value="${trusted_proxy_ip}"
 }
 
 PrepLaunch(){
@@ -500,4 +503,5 @@ ConfigureSamba
 SetCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
+SetTrustedProxy
 exec "$@"
