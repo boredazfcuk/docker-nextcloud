@@ -28,9 +28,9 @@ WaitForDBServer(){
    fi
    db_server_online="$(mysql --host="${MYSQL_HOST:=mariadb}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")"
    while [ "${db_server_online}" = 0 ]; do
-      echo "Waiting for database server, ${MYSQL_HOST}, to come online..." 
+      echo "Waiting for database server, ${MYSQL_HOST}, to come online..."
       sleep 10
-      db_server_online="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")" 
+      db_server_online="$(mysql --host="${MYSQL_HOST}" --user=root --password="${MYSQL_ROOT_PASSWORD}" --execute="SELECT 1;" 2>/dev/null | grep -c "1")"
    done
 }
 
@@ -121,6 +121,11 @@ SetTrustedDomains(){
       run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_domains $NC_TRUSTED_DOMAIN_IDX --value=$DOMAIN"
       NC_TRUSTED_DOMAIN_IDX=$(($NC_TRUSTED_DOMAIN_IDX+1))
    done
+}
+
+SetTrustedProxy(){
+   echo "Configure trusted proxy..."
+   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value="$(getent hosts nginx | awk '{print $1}')"
 }
 
 PrepLaunch(){
