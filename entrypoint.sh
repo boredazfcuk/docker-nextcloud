@@ -251,6 +251,7 @@ FirstRun(){
       echo 'pm.max_requests = 250'
       echo 'pm.status_path = /status'
       echo 'access.log = /dev/stderr'
+      echo 'access.format = "%{REMOTE_ADDR}e - %u %t \"%m %r%Q%q\" %s"'
       echo 'env[HOSTNAME] = $HOSTNAME'
       echo 'env[PATH] = /usr/local/bin:/usr/bin:/bin'
       echo 'env[TMP] = /tmp'
