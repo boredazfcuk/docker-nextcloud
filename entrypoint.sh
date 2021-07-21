@@ -128,7 +128,7 @@ SetTrustedProxy(){
    echo "Configure trusted proxy..."
    trusted_proxy_ip="$(getent hosts nginx | awk '{print $1}')"
    echo " - adding: ${trusted_proxy_ip}"
-   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value="${trusted_proxy_ip}"
+   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value=${trusted_proxy_ip}"
 }
 
 PrepLaunch(){
