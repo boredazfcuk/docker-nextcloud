@@ -5,11 +5,8 @@ if [ "$("$(which php)" -v > /dev/null; echo $?)" -ne 0 ]; then
    exit 1
 fi
 
-SCRIPT_NAME="/status"
-SCRIPT_FILENAME="/usr/local/php/php/fpm/status.html"
-REQUEST_METHOD="GET"
-if [ "$("$(which cgi-fcgi)" -bind -connect "${HOSTNAME}:9001" >/dev/null; echo $?)" -ne 0 ]; then
-   echo "FastCGI server not responding"
+if [ "$(netstat -lnt | grep "^tcp" | awk '{print $4}' | grep -v "^127.0.0.11" | grep -c ":9001")" -ne 1 ]; then
+   echo "FastCGI server not listening on port 9001"
    exit 1
 fi
 
