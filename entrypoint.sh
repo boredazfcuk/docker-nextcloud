@@ -327,7 +327,6 @@ FirstRun(){
       if [ "$(grep -c "log_rotate_size" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set log_rotate_size --value=104857600"
       fi
-# echo "  'log_rotate_size' => 104857600,"
       if [ "$(grep -c "trashbin_retention_obligation" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trashbin_retention_obligation --value=auto, 7"
       fi
