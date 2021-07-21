@@ -3,11 +3,13 @@ MAINTAINER boredazfcuk
 
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
 ARG nextcloud_version="21.0.1"
-ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd clamav iproute2 net-tools"
+ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd clamav iproute2 net-tools imagemagick"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
 echo "$(date '+%c') | Install dependencies" && \
    apt-get update && \
+   apt-get remove -y imagemagick-6-common && \
+   apt-get autoremove -y && \
    apt-get install -y ${app_dependencies} && \
    pecl install smbclient && \
    docker-php-ext-enable smbclient

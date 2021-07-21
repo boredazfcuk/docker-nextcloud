@@ -355,6 +355,9 @@ FirstRun(){
       if [ "$(grep -c "installed" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set installed --value=true"
       fi
+      if [ "$(grep -c "default_phone_region" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set default_phone_region --value=GB"
+      fi
       echo "First-run initialisation complete"
       rm "/initialise_container"
    fi
