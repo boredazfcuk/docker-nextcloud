@@ -129,6 +129,11 @@ SetTrustedProxy(){
    run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value=${trusted_proxy_ip}"
 }
 
+SetForwardHeaders(){
+   echo "Configure forwarded headers..."
+   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 0 --value=HTTP_X_FORWARDED_FOR"
+}
+
 PrepLaunch(){
    if expr "$1" : "apache" 1>/dev/null || [ "$1" = "php-fpm" ] || [ "${NEXTCLOUD_UPDATE:-0}" -eq 1 ]; then
       if [ -n "${REDIS_HOST+x}" ]; then ConfigureRedis; fi
@@ -502,4 +507,5 @@ SetCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
+SetForwardHeaders
 exec "$@"
