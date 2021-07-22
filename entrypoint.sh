@@ -384,9 +384,11 @@ ConfigurePHPFPM(){
       /usr/local/etc/php-fpm.d/www.conf
 }
 
-SetCrontab(){
+ConfigureCrontab(){
    echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
    echo "*/5 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
+   echo "Starting cron daemon..."
+   /etc/init.d/cron start
 }
 
 SetOwnerAndGroup(){
