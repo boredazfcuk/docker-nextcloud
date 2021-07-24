@@ -129,11 +129,6 @@ SetTrustedProxy(){
    run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set trusted_proxies 0 --value=${trusted_proxy_ip}"
 }
 
-SetForwardHeaders(){
-   echo "Configure forwarded headers..."
-   run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 0 --value=HTTP_X_FORWARDED_FOR"
-}
-
 PrepLaunch(){
    if expr "$1" : "apache" 1>/dev/null || [ "$1" = "php-fpm" ] || [ "${NEXTCLOUD_UPDATE:-0}" -eq 1 ]; then
       if [ -n "${REDIS_HOST+x}" ]; then ConfigureRedis; fi
@@ -358,6 +353,9 @@ FirstRun(){
       if [ "$(grep -c "default_phone_region" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set default_phone_region --value=GB"
       fi
+      if [ "$(grep -c "forwarded_for_headers" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 0 --value=HTTP_X_FORWARDED_FOR"
+      fi
       echo "First-run initialisation complete"
       rm "/initialise_container"
    fi
@@ -385,17 +383,20 @@ ConfigurePHPFPM(){
 }
 
 ConfigureCrontab(){
-   echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
-   echo "*/5 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
    echo "Starting cron daemon..."
    /etc/init.d/cron start
+   if [ ! -f "/var/cron/crontabs/www-data" ]; then
+      echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
+      echo "*/5 * * * * /usr/local/bin/php -f \"/var/www/html/nextcloud/cron.php\"" > "/tmp/crontab_www-data"
+      crontab -u www-data "/tmp/crontab_www-data"
+      rm "/tmp/crontab_www-data"
+   fi
 }
 
 SetOwnerAndGroup(){
    echo "Set owner and group of application files to ${user_id}:${group_id}"
    chown "${user_id}:${group_id}" "/var/www/data"
    chown "${user_id}:${group_id}" "/var/www/html"
-   chown "${user_id}:${group_id}" "/var/spool/cron/crontabs/www-data"
    find "${NEXTCLOUD_INSTALL_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
    find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
    find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
@@ -416,5 +417,4 @@ ConfigureCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
-SetForwardHeaders
 exec "$@"
