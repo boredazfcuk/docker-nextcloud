@@ -417,7 +417,7 @@ PrepLaunch "$1"
 if [ -f "/initialise_container" ]; then FirstRun; fi
 ConfigurePHPFPM
 ConfigureSamba
-ConfigureImageMagick
+#ConfigureImageMagick
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
