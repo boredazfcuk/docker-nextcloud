@@ -384,9 +384,13 @@ ConfigurePHPFPM(){
 
 ConfigureImageMagick(){
    echo "Configure ImageMagick to allow PDF files"
-   sed -i -e '/^.*pattern="PDF"/ s/^/<!--/' \
+   sed -i -e '/^ .*pattern="PDF"/ s/^/<!--/' \
       -e '/^.*pattern="PDF"/ s/$/ -->/' \
       /etc/ImageMagick-6/policy.xml
+}
+
+LaunchClamAV(){
+   /etc/init.d/clamav-daemon start
 }
 
 LaunchCronScript(){
@@ -417,5 +421,6 @@ ConfigureImageMagick
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
+LaunchClamAV
 LaunchCronScript
 exec "$@"
