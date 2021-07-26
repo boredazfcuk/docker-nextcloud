@@ -277,10 +277,10 @@ FirstRun(){
       if [ "$(grep -c "enable_previews" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enable_previews --value=true"
       fi
-      if [ "$(grep -c "preview_max" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_x --value=1280"
-         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_y --value=1024"
-      fi
+#      if [ "$(grep -c "preview_max" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+#         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_x --value=1280"
+#         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_y --value=1024"
+#      fi
       if [ "$(grep -c "enabledPreviewProviders" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 0 --value=OC\\Preview\\PNG"
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 1 --value=OC\\Preview\\JPEG"
@@ -293,9 +293,9 @@ FirstRun(){
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 8 --value=OC\\Preview\\TXT"
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set enabledPreviewProviders 9 --value=OC\\Preview\\MarkDown"
       fi
-      if [ "$(grep -c "preview_max_scale_factor" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_scale_factor --value=1"
-      fi
+#      if [ "$(grep -c "preview_max_scale_factor" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+#         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set preview_max_scale_factor --value=1"
+#      fi
       if [ "$(grep -c "filesystem_check_changes" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set filesystem_check_changes --value=0"
       fi
