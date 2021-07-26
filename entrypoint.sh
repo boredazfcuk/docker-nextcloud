@@ -382,6 +382,13 @@ ConfigurePHPFPM(){
       /usr/local/etc/php-fpm.d/www.conf
 }
 
+ConfigureImageMagick(){
+   echo "Configure ImageMagick to allow PDF files"
+   sed -i -e '/^.*pattern="PDF"/ s/^/<!--/' \
+      -e '/^.*pattern="PDF"/ s/$/ -->/' \
+      /etc/ImageMagick-6/policy.xml
+}
+
 LaunchCronScript(){
    /usr/local/bin/cron.sh &
 }
@@ -406,7 +413,7 @@ PrepLaunch "$1"
 if [ -f "/initialise_container" ]; then FirstRun; fi
 ConfigurePHPFPM
 ConfigureSamba
-#ConfigureCrontab
+ConfigureImageMagick
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
