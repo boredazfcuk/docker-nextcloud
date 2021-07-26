@@ -382,15 +382,8 @@ ConfigurePHPFPM(){
       /usr/local/etc/php-fpm.d/www.conf
 }
 
-ConfigureCrontab(){
-   echo "Starting cron daemon..."
-   /etc/init.d/cron start
-   if [ ! -f "/var/cron/crontabs/www-data" ]; then
-      echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
-      echo "*/5 * * * * /usr/local/bin/php -f \"/var/www/html/nextcloud/cron.php\"" > "/tmp/crontab_www-data"
-      crontab -u www-data "/tmp/crontab_www-data"
-      rm "/tmp/crontab_www-data"
-   fi
+LaunchCronScript(){
+   /usr/local/bin/cron.sh &
 }
 
 SetOwnerAndGroup(){
@@ -413,8 +406,9 @@ PrepLaunch "$1"
 if [ -f "/initialise_container" ]; then FirstRun; fi
 ConfigurePHPFPM
 ConfigureSamba
-ConfigureCrontab
+#ConfigureCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
+LaunchCronScript
 exec "$@"

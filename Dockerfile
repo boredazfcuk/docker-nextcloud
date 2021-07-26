@@ -3,7 +3,7 @@ MAINTAINER boredazfcuk
 
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
 ARG nextcloud_version="21.0.1"
-ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd clamav iproute2 net-tools imagemagick"
+ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd clamav iproute2 net-tools imagemagick sudo"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
 echo "$(date '+%c') | Install dependencies" && \
@@ -16,9 +16,10 @@ echo "$(date '+%c') | Install dependencies" && \
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+COPY cron.sh /usr/local/bin/cron.sh
 
 RUN echo "$(date '+%c') | Set execute permissions on scripts" && \
-   chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh && \
+   chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh /usr/local/bin/cron.sh && \
    apt-get clean && \
    echo "Init" > "/initialise_container" && \
 echo "$(date '+%c') | ***** BUILD COMPLETE *****"
