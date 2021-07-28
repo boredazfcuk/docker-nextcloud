@@ -10,10 +10,11 @@ echo "$(date '+%c') | Install dependencies" && \
    apt-get update && \
    apt-get remove -y imagemagick-6-common && \
    apt-get autoremove -y && \
-   apt-get install -y ${app_dependencies} && \
-   pecl install smbclient && \
-   docker-php-ext-enable smbclient && \
+   apt-get install -y ${app_dependencies} smbclient && \
    freshclam
+
+#   pecl install smbclient
+# docker-php-ext-enable smbclient
 
 COPY entrypoint.sh /entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh

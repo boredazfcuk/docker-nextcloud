@@ -384,9 +384,10 @@ ConfigurePHPFPM(){
 
 ConfigureImageMagick(){
    echo "Configure ImageMagick to allow PDF files"
-   sed -i -e '/^ .*pattern="PDF"/ s/^/<!--/' \
-      -e '/^.*pattern="PDF"/ s/$/ -->/' \
-      /etc/ImageMagick-6/policy.xml
+   sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
+#   sed -i -e '/^ .*pattern="PDF"/ s/^/<!--/' \
+#      -e '/^.*pattern="PDF"/ s/$/ -->/' \
+#      /etc/ImageMagick-6/policy.xml
 }
 
 LaunchClamAV(){
