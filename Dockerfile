@@ -22,6 +22,7 @@ RUN echo "$(date '+%c') | Set execute permissions on scripts" && \
    mkdir -p /var/log/supervisord /var/run/supervisord /var/run/clamav && \
    chown clamav /var/run/clamav && \
    chmod +x /entrypoint.sh /usr/local/bin/healthcheck.sh && \
+   rm -rf /var/lib/apt/lists/* && \
    apt-get clean && \
    echo "Init" > "/initialise_container" && \
 echo "$(date '+%c') | ***** BUILD COMPLETE *****"

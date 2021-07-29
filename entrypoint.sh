@@ -265,7 +265,7 @@ FirstRun(){
       echo 'include=/usr/local/etc/php-fpm.d/*.conf'
    } > /usr/local/etc/php-fpm.conf
    if [ -f "${NEXTCLOUD_INSTALL_DIR}/config/config.php" ]; then
-      echo "${NEXTCLOUD_INSTALL_DIR}/config/config.php - Exists"
+      echo "Configuring: ${NEXTCLOUD_INSTALL_DIR}/config/config.php"
       if [ "$(grep -c "blacklisted_files" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set blacklisted_files 0 --value=.htaccess"
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set blacklisted_files 1 --value=Thumbs.db"
@@ -405,10 +405,6 @@ SetOwnerAndGroup(){
    find "${NEXTCLOUD_DATA_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
 }
 
-UpdateClam(){
-   freshclam
-}
-
 ##### Script #####
 WaitForDBServer
 Initialise
@@ -424,5 +420,4 @@ ConfigureCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
-UpdateClam
 exec "$@"
