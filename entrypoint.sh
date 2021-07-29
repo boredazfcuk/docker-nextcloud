@@ -390,12 +390,9 @@ ConfigureImageMagick(){
 #      /etc/ImageMagick-6/policy.xml
 }
 
-LaunchClamAV(){
-   /etc/init.d/clamav-daemon start
-}
-
-LaunchCronScript(){
-   /usr/local/bin/cron.sh &
+ConfigureCrontab(){
+   echo "Configure crontab: ${NEXTCLOUD_INSTALL_DIR}"
+   echo "*/5 * * * * /usr/local/bin/php -f \"${NEXTCLOUD_INSTALL_DIR}/cron.php\"" > "/var/spool/cron/crontabs/www-data"
 }
 
 SetOwnerAndGroup(){
@@ -406,6 +403,10 @@ SetOwnerAndGroup(){
    find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
    find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
    find "${NEXTCLOUD_DATA_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
+}
+
+UpdateClam(){
+   freshclam
 }
 
 ##### Script #####
@@ -419,9 +420,9 @@ if [ -f "/initialise_container" ]; then FirstRun; fi
 ConfigurePHPFPM
 ConfigureSamba
 #ConfigureImageMagick
+ConfigureCrontab
 SetOwnerAndGroup
 if [ -n "${NEXTCLOUD_TRUSTED_DOMAINS+x}" ]; then SetTrustedDomains; fi
 SetTrustedProxy
-LaunchClamAV
-LaunchCronScript
+UpdateClam
 exec "$@"
