@@ -206,6 +206,7 @@ PrepLaunch(){
 
 FirstRun(){
    echo "First run detected, create default settings"
+   mkdir --parents "${NEXTCLOUD_DATA_DIR}/empty_skeleton"
    echo "Backup PHP config files"
    cp /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf.default
    cp /usr/local/etc/php-fpm.conf /usr/local/etc/php-fpm.conf.default
@@ -329,6 +330,9 @@ FirstRun(){
       if [ "$(grep -c "updater.release.channel" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set updater.release.channel --value=stable"
       fi
+      if [ "$(grep -c "skeletondirectory" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set skeletondirectory --value=${NEXTCLOUD_DATA_DIR}/emptyskeleton"
+      fi
       if [ "$(grep -c "updatechecker" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set updatechecker --value=false"
       fi
@@ -356,6 +360,7 @@ FirstRun(){
       if [ "$(grep -c "forwarded_for_headers" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 0 --value=HTTP_X_FORWARDED_FOR"
       fi
+      run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ maintenance:mode --off"
       echo "First-run initialisation complete"
       rm "/initialise_container"
    fi
