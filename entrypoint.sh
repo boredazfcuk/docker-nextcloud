@@ -331,7 +331,7 @@ FirstRun(){
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set updater.release.channel --value=stable"
       fi
       if [ "$(grep -c "skeletondirectory" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set skeletondirectory --value=${NEXTCLOUD_DATA_DIR}/emptyskeleton"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set skeletondirectory --value=${NEXTCLOUD_DATA_DIR}/empty_skeleton"
       fi
       if [ "$(grep -c "updatechecker" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set updatechecker --value=false"
