@@ -348,9 +348,6 @@ FirstRun(){
       if [ "$(grep -c "auth.bruteforce.protection.enabled" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set auth.bruteforce.protection.enabled --value=true"
       fi
-      if [ "$(grep -c "maintenance" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set maintenance --value=false"
-      fi
       if [ "$(grep -c "installed" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set installed --value=true"
       fi
