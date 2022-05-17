@@ -1,4 +1,5 @@
-FROM nextcloud:stable-fpm
+#FROM nextcloud:stable-fpm
+FROM nextcloud:21.0.9-fpm
 MAINTAINER boredazfcuk
 
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
