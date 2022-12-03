@@ -47,7 +47,7 @@ Initialise(){
    echo "Nextcloud Admin password: ${NEXTCLOUD_ADMIN_PASSWORD:=Skibidibbydibyodadubdub}"
    echo "Nextcloud Update: ${NEXTCLOUD_UPDATE:=0}"
    if [ "${nextcloud_access_domain}" ]; then
-      NEXTCLOUD_TRUSTED_DOMAINS="${media_access_domain} ${nextcloud_access_domain}"
+      NEXTCLOUD_TRUSTED_DOMAINS="${nextcloud_access_domain}"
    else
       NEXTCLOUD_TRUSTED_DOMAINS="${media_access_domain}"
    fi
@@ -212,6 +212,9 @@ FirstRun(){
    cp /usr/local/etc/php-fpm.conf /usr/local/etc/php-fpm.conf.default
    cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
    cp /usr/local/etc/php/php.ini /usr/local/etc/php/php.ini.default
+   echo "Backup clamav config file"
+   cp /etc/clamav/clamd.conf /etc/clamav/clamd.conf.default
+   echo "Disable ClamAV Concurrent Database Reload"
    if [ -f "/usr/local/etc/php-fpm.d/docker.conf" ]; then mv "/usr/local/etc/php-fpm.d/docker.conf" "/usr/local/etc/php-fpm.d/docker.conf.default"; fi
    if [ -f "/usr/local/etc/php-fpm.d/zz-docker.conf" ]; then mv "/usr/local/etc/php-fpm.d/zz-docker.conf" "/usr/local/etc/php-fpm.d/zz-docker.conf.default"; fi
    echo "Configure PHP config options"
@@ -238,9 +241,9 @@ FirstRun(){
       echo '[www]'
       echo 'user = www-data'
       echo 'group = www-data'
-      echo 'listen = 127.0.0.1:9000'
+      echo 'listen = 127.0.0.1:9001'
       echo 'pm = dynamic'
-      echo 'pm.max_children = 240'
+      echo 'pm.max_children = 40'
       echo 'pm.start_servers = 6'
       echo 'pm.min_spare_servers = 3'
       echo 'pm.max_spare_servers = 9'
@@ -398,13 +401,18 @@ ConfigureCrontab(){
 }
 
 SetOwnerAndGroup(){
-   echo "Set owner and group of application files to ${user_id}:${group_id}"
-   chown "${user_id}:${group_id}" "/var/www/data"
-   chown "${user_id}:${group_id}" "/var/www/html"
-   find "${NEXTCLOUD_INSTALL_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
-   find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
-   find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
-   find "${NEXTCLOUD_DATA_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
+   if [ -f "/set_app_dir_permissions" ]; then
+      echo "Set owner and group of application files to ${user_id}:${group_id}"
+      chown "${user_id}:${group_id}" "/var/www/html"
+      find "${NEXTCLOUD_INSTALL_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
+      find "${NEXTCLOUD_INSTALL_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
+   fi
+   if [ -f "/set_data_dir_permissions" ]; then
+      echo "Set owner and group of data files to ${user_id}:${group_id}"
+      chown "${user_id}:${group_id}" "/var/www/data"
+      find "${NEXTCLOUD_DATA_DIR}" ! -user "${user_id}" -exec chown "${user_id}" {} \;
+      find "${NEXTCLOUD_DATA_DIR}" ! -group "${group_id}" -exec chgrp "${group_id}" {} \;
+   fi
 }
 
 ##### Script #####

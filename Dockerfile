@@ -5,7 +5,7 @@ FROM nextcloud:stable-fpm
 MAINTAINER boredazfcuk
 
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
-ARG nextcloud_version="24.0.4"
+ARG nextcloud_version="24.0.6"
 ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd clamav clamav-daemon iproute2 net-tools imagemagick sudo supervisor"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
@@ -26,8 +26,7 @@ COPY --chmod=0755 entrypoint.sh /entrypoint.sh
 COPY --chmod=0755 healthcheck.sh /usr/local/bin/healthcheck.sh
 COPY supervisord.conf /etc/supervisord.conf
 
-HEALTHCHECK --start-period=10s --interval=1m --timeout=10s \
-   CMD /usr/local/bin/healthcheck.sh
+HEALTHCHECK --start-period=1m --interval=1m --timeout=10s  CMD /usr/local/bin/healthcheck.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
