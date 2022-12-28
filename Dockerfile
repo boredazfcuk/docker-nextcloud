@@ -1,11 +1,11 @@
 #FROM nextcloud:21.0.9-fpm
 #FROM nextcloud:22.2.7-fpm
-FROM nextcloud:stable-fpm
+FROM nextcloud:24.0.8-fpm
 
 MAINTAINER boredazfcuk
 
 # nextcloud_version variable not used. Simply increment to force a full rebuild of the container
-ARG nextcloud_version="24.0.6"
+ARG nextcloud_version="24.0.8"
 ARG app_dependencies="tzdata passwd redis-server mariadb-client procps ffmpeg libfcgi-bin smbclient libsmbclient-dev cifs-utils sssd realmd clamav clamav-daemon iproute2 net-tools imagemagick sudo supervisor"
 
 RUN echo "$(date '+%c') | ***** BUILD STARTED FOR NEXTCLOUD *****" && \
