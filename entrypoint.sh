@@ -243,10 +243,10 @@ FirstRun(){
       echo 'group = www-data'
       echo 'listen = 127.0.0.1:9001'
       echo 'pm = dynamic'
-      echo 'pm.max_children = 40'
-      echo 'pm.start_servers = 6'
-      echo 'pm.min_spare_servers = 3'
-      echo 'pm.max_spare_servers = 9'
+      echo 'pm.max_children = 86'
+      echo 'pm.start_servers = 21'
+      echo 'pm.min_spare_servers = 21'
+      echo 'pm.max_spare_servers = 64'
       echo 'pm.max_requests = 250'
       echo 'pm.status_path = /status'
       echo 'access.log = /dev/stderr'
@@ -358,7 +358,8 @@ FirstRun(){
          run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set default_phone_region --value=GB"
       fi
       if [ "$(grep -c "forwarded_for_headers" "${NEXTCLOUD_INSTALL_DIR}/config/config.php")" -eq 0 ]; then
-         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 0 --value=HTTP_X_FORWARDED_FOR"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 0 --value=HTTP_X_FORWARDED"
+         run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ config:system:set forwarded_for_headers 1 --value=HTTP_X_FORWARDED_FOR"
       fi
       run_as "/usr/local/bin/php ${NEXTCLOUD_INSTALL_DIR}/occ maintenance:mode --off"
       echo "First-run initialisation complete"
